@@ -1,0 +1,107 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Required Documents - Kandy SmartCad</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="kmc-header">
+  <div class="kmc-logo">
+    Kandy<br>
+    <span>Municipal Council</span>
+  </div>
+
+  <nav class="kmc-nav">
+
+    <a href="index.html">Home</a>
+    <a href="about.html">About Us</a>
+
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-toggle">Services</button>
+
+      <div class="nav-dropdown-menu">
+        <a href="services.html">Public Services</a>
+        <a href="#">Online Registration</a>
+        <a href="#">Online Booking</a>
+        <a href="planning-main.html">Planning Portal</a>
+      </div>
+    </div>
+
+    <a href="departments.html">Departments & Divisions</a>
+    <a href="downloads.html">Downloads</a>
+
+    <a href="login.html" class="login-btn">Login</a>
+
+  </nav>
+</header>
+
+
+
+<main class="main">
+  <h2>Required Documents</h2>
+  <p class="text-small">
+    Based on your proposed development, the following documents are generally required. All the documents should be in scanned PDF form.
+  </p>
+
+  <div class="panel">
+    <ul class="text-small">
+      <li>E-Application</li>
+      <li>Payment Slip</li>
+      <li>Drawings of the Proposed Building</li>
+      <li>Certified Copy of Survey Plan</li>
+      <li>Ownership Documents (Deed / Lease agreement)</li>
+      <li>Building plans signed by a qualified architect / draughtsman</li>
+      <li>Structural drawings and certificate (for multi-storey buildings)</li>
+      <li>Copy of National Identity Card/Passport</li>
+      <li>Business Registration Certificate</li>
+      <li>Payement Reciept of Rates for Relevant Year</li>
+      <li>Copy of PPC</li>
+      <li>Copy of Approved Plan(if there any existing building)</li>
+      <li>If the Applicant is not the Owner of the Land, a Power of Attorney Allowing Applicant to Act on Behalf of the Owner</li>
+
+  <h4>If the Landuse is Non-Residential or Apartment, Should Include Below Documents.</h4>
+        <li>Fire Certificate</li>
+        <li>Clearance from CEB</li>
+        <li>Clearance from National Water Supply & Drainage Board</li>
+        <li>Clearance from Condominium Authority(if it is a Condominium Property)</li>
+
+    </ul>
+
+    <button class="btn-primary" type="button" onclick="window.location.href='login.html'">
+      Submit My Documents
+    </button>
+    <onclick="window.location.href='guide-submit.html'">
+      
+    </button>
+  </div>
+</main>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const toggle = document.getElementById("servicesToggle");
+  const menu = document.getElementById("servicesMenu");
+
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation(); // prevent auto close
+    menu.classList.toggle("show");
+  });
+
+  menu.addEventListener("click", (e) => {
+    e.stopPropagation(); // keep open when clicking inside
+  });
+
+  // Close dropdown when clicking anywhere else
+  document.addEventListener("click", () => {
+    menu.classList.remove("show");
+  });
+
+});
+</script>
+  <script src="user-session-strip.js"></script>
+</body>
+</html>
+
+
+

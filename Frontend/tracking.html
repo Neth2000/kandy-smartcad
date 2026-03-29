@@ -1,0 +1,255 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Planning Approval Tracking â€“ Kandy SmartCad</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="api-config.js"></script>
+  <style>
+    .status-steps {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .status-step {
+      padding: 14px 16px;
+      border: 1px solid #ddd6f7;
+      border-radius: 12px;
+      background: #faf8ff;
+      color: #4b3f72;
+    }
+
+    .status-step.active {
+      background: #eee4ff;
+      border-color: #d0b8ff;
+    }
+
+    .status-step.current {
+      box-shadow: 0 0 0 2px #d9c3ff inset;
+    }
+
+    .status-note {
+      margin-top: 6px;
+      color: #6a6092;
+      font-size: 0.9rem;
+    }
+
+    .doc-review-alert {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.86rem;
+      border: 1px solid #f2c2bf;
+      background: #fdecea;
+      color: #b42318;
+      display: none;
+    }
+
+    .doc-review-alert.ok {
+      border-color: #b7dfc0;
+      background: #e8f5e9;
+      color: #1f6f3d;
+    }
+  </style>
+</head>
+<body>
+
+<header class="kmc-header">
+  <div class="kmc-logo">
+    Kandy<br>
+    <span>Municipal Council</span>
+  </div>
+
+  <nav class="kmc-nav">
+
+    <a href="index.html">Home</a>
+    <a href="about.html">About Us</a>
+
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-toggle">Services</button>
+
+      <div class="nav-dropdown-menu">
+        <a href="services.html">Public Services</a>
+        <a href="#">Online Registration</a>
+        <a href="#">Online Booking</a>
+        <a href="planning-main.html">Planning Portal</a>
+      </div>
+    </div>
+
+    <a href="departments.html">Departments & Divisions</a>
+    <a href="downloads.html">Downloads</a>
+
+    <a href="login.html" class="login-btn">Login</a>
+
+  </nav>
+</header>
+
+
+
+<main class="main">
+  <h2>Planning Approval Tracking</h2>
+
+  <div class="panel">
+    <div class="form-group">
+      <label for="trackingId">Enter Your Tracking ID</label>
+      <input type="text" id="trackingId" placeholder="e.g., KMC-PLN-2025-001" />
+    </div>
+
+    <button class="btn-primary" type="button" onclick="showStatus()">
+      Check Status
+    </button>
+
+    <div id="statusArea" style="margin-top: 20px; display:none;">
+      <p class="text-small">
+        Current status for <span id="statusId" style="font-weight:600;"></span>:
+      </p>
+
+      <p id="statusSummary" class="text-small" style="margin-top:8px;"></p>
+      <div id="docReviewAlert" class="doc-review-alert"></div>
+
+      <div id="statusSteps" class="status-steps"></div>
+
+      <div id="historyArea" class="panel" style="margin-top:16px; display:none;">
+        <h3>Status History</h3>
+        <div id="historyList" class="text-small"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function formatDate(value) {
+    if (!value) {
+      return "-";
+    }
+
+    return new Date(value).toLocaleString();
+  }
+
+  async function showStatus() {
+    const id = document.getElementById("trackingId").value.trim();
+    const statusArea = document.getElementById("statusArea");
+    const statusId = document.getElementById("statusId");
+    const statusSummary = document.getElementById("statusSummary");
+    const docReviewAlert = document.getElementById("docReviewAlert");
+    const statusSteps = document.getElementById("statusSteps");
+    const historyArea = document.getElementById("historyArea");
+    const historyList = document.getElementById("historyList");
+
+    if (!id) {
+      return;
+    }
+
+    statusId.textContent = id;
+    statusArea.style.display = "block";
+    statusSummary.textContent = "Loading status...";
+    docReviewAlert.style.display = "none";
+    docReviewAlert.classList.remove("ok");
+    docReviewAlert.textContent = "";
+    statusSteps.innerHTML = "";
+    historyArea.style.display = "none";
+    historyList.innerHTML = "";
+
+    try {
+      const response = await fetch(API_BASE + "/track/" + encodeURIComponent(id));
+
+      if (!response.ok) {
+        throw new Error("Application not found");
+      }
+
+      const data = await response.json();
+      const application = data.application || {};
+      const steps = data.steps || [];
+      const history = data.history || [];
+      const docReviewSummary = data.docReviewSummary || {};
+      const totalDocuments = Number(docReviewSummary.total_documents || 0);
+      const rejectedDocuments = Number(docReviewSummary.rejected_documents || 0);
+
+      statusSummary.textContent = "Current stage: " + (application.status || "submitted") + " | Submitted: " + formatDate(application.created_at);
+
+      if (totalDocuments > 0) {
+        docReviewAlert.style.display = "block";
+        if (rejectedDocuments > 0) {
+          docReviewAlert.textContent = "Document Rejected: At least one submitted document was rejected by the reviewer.";
+          docReviewAlert.classList.remove("ok");
+        } else {
+          docReviewAlert.textContent = "Document Review: No documents are rejected at the moment.";
+          docReviewAlert.classList.add("ok");
+        }
+      }
+
+      statusSteps.innerHTML = steps.map((step, index) => `
+        <div class="status-step${step.active ? " active" : ""}${step.current ? " current" : ""}">
+          <strong>Step ${index + 1} - ${escapeHtml(step.label)}</strong><br />
+          ${escapeHtml(step.description)}
+        </div>
+      `).join("");
+
+      if (history.length > 0) {
+        historyArea.style.display = "block";
+        historyList.innerHTML = history.map((item) => `
+          <div class="status-note">
+            <strong>${escapeHtml(item.status_label)}</strong> - ${escapeHtml(formatDate(item.created_at))}<br />
+            ${escapeHtml(item.notes || "")}
+          </div>
+        `).join("");
+      }
+    } catch (error) {
+      statusSummary.textContent = error.message;
+      statusSteps.innerHTML = `
+        <div class="status-step active current">
+          <strong>Step 1 - Submitted</strong><br />
+          Application submitted by applicant.
+        </div>
+      `;
+    }
+  }
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const toggle = document.getElementById("servicesToggle");
+  const menu = document.getElementById("servicesMenu");
+
+  if (toggle && menu) {
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      menu.classList.toggle("show");
+    });
+
+    menu.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+
+    document.addEventListener("click", () => {
+      menu.classList.remove("show");
+    });
+  }
+
+  // Pre-fill tracking ID from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const trackingId = urlParams.get('trackingId');
+  if (trackingId) {
+    document.getElementById('trackingId').value = trackingId;
+    showStatus();
+  }
+
+});
+</script>
+  <script src="user-session-strip.js"></script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,362 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Submit Documents â€“ Kandy SmartCad</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="api-config.js"></script>
+  <style>
+    .progress-wrapper {
+      margin-top: 14px;
+      background: #fff;
+      border: 1px solid #c1c7d0;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .progress-track {
+      position: relative;
+      width: 100%;
+      height: 14px;
+      border-radius: 8px;
+      background: #e9edf5;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #3d92ff, #0f73f6);
+      transition: width 0.2s ease;
+    }
+    .progress-text {
+      display: inline-block;
+      margin-top: 8px;
+      color: #1f2a44;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    #upload-status { display: none; }
+  </style>
+</head>
+<body>
+
+<header class="kmc-header">
+  <div class="kmc-logo">
+    Kandy<br>
+    <span>Municipal Council</span>
+  </div>
+
+  <nav class="kmc-nav">
+
+    <a href="index.html">Home</a>
+    <a href="about.html">About Us</a>
+
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-toggle">Services</button>
+
+      <div class="nav-dropdown-menu">
+        <a href="services.html">Public Services</a>
+        <a href="#">Online Registration</a>
+        <a href="#">Online Booking</a>
+        <a href="planning-main.html">Planning Portal</a>
+      </div>
+    </div>
+
+    <a href="departments.html">Departments & Divisions</a>
+    <a href="downloads.html">Downloads</a>
+
+    <a href="login.html" class="login-btn">Login</a>
+
+  </nav>
+</header>
+<main class="main">
+  <div class="panel" style="display:flex; justify-content:space-between; align-items:center; padding: 10px 18px; margin-bottom: 12px; border-left: 4px solid #9b59ff;">
+    <span style="font-size:1rem; color:#222;">
+      <strong>User Account ID:</strong> <span id="displayUserId" style="color:#9b59ff; font-weight:600;">â€”</span>
+    </span>
+    <span style="font-size:0.95rem; color:#555;" id="displayUserName"></span>
+  </div>
+
+  <h2>Submit Your Documents</h2>
+
+<div class="form-group">
+  <label for="devType">Proposed Development Type</label>
+  <select id="devType" class="input">
+    <option value="">-- Select --</option>
+    <option value="res">Residential</option>
+    <option value="nonres">Non-Residential</option>
+  </select>
+</div>
+
+<p class="text-small">
+  Select the proposed land use to view applicable document requirements.
+</p>
+
+
+<div class="panel">
+  <h3>Upload Required Documents</h3>
+  <p class="text-small">
+    Upload clear scanned copies (PDF/JPG). Required documents are enabled
+    based on selected development type.
+  </p>
+
+  <div class="doc-grid">
+
+    <!-- COMMON DOC -->
+    <div class="doc-row">
+      <span class="doc-name">E-Application</span>
+      <input type="file" id="fileInput" disabled>
+    </div>
+
+    <div class="doc-row">
+      <span class="doc-name">Payment Slip</span>
+      <input type="file" disabled>
+    </div>
+
+    <div class="doc-row">
+      <span class="doc-name">Drawings of Proposed Building</span>
+      <input type="file" disabled>
+    </div>
+
+    <div class="doc-row">
+      <span class="doc-name">Certified Copy of Survey Plan</span>
+      <input type="file" disabled>
+    </div>
+
+    <div class="doc-row">
+      <span class="doc-name">Ownership Documents (Deed / Lease)</span>
+      <input type="file" disabled>
+    </div>
+
+    <div class="doc-row">
+      <span class="doc-name">Architect / Draughtsman Signed Plans</span>
+      <input type="file" disabled>
+    </div>
+
+    <div class="doc-row">
+      <span class="doc-name">Structural Drawings & Certificate</span>
+      <input type="file" disabled>
+    </div>
+
+    <div class="doc-row">
+      <span class="doc-name">NIC / Passport Copy</span>
+      <input type="file" disabled>
+    </div>
+
+    <div class="doc-row">
+      <span class="doc-name">Business Registration Certificate</span>
+      <input type="file" disabled>
+    </div>
+
+    <div class="doc-row">
+      <span class="doc-name">Rates Payment Receipt</span>
+      <input type="file" disabled>
+    </div>
+
+    <div class="doc-row">
+      <span class="doc-name">Copy of PPC</span>
+      <input type="file" disabled>
+    </div>
+
+    <div class="doc-row">
+      <span class="doc-name">Approved Plan (if existing)</span>
+      <input type="file" disabled>
+    </div>
+
+    <div class="doc-row">
+      <span class="doc-name">Power of Attorney (if applicable)</span>
+      <input type="file" disabled>
+    </div>
+
+    <!-- NON RESIDENTIAL -->
+    <div class="doc-row nonres">
+      <span class="doc-name">Fire Certificate</span>
+      <input type="file" disabled>
+    </div>
+
+    <div class="doc-row nonres">
+      <span class="doc-name">CEB Clearance</span>
+      <input type="file" disabled>
+    </div>
+
+    <div class="doc-row nonres">
+      <span class="doc-name">Water Board Clearance</span>
+      <input type="file" disabled>
+    </div>
+
+    <div class="doc-row nonres">
+      <span class="doc-name">Condominium Authority Clearance</span>
+      <input type="file" disabled>
+    </div>
+
+  </div>
+</div>
+
+  <div class="submit-container">
+  </div>
+  <button id="submit-btn" class="btn-primary" type="button">
+    Upload Document & Submit
+  </button>
+
+  <div id="upload-status" class="progress-wrapper">
+    <div class="progress-track">
+      <div id="progress-fill" class="progress-fill"></div>
+    </div>
+    <span id="upload-percent" class="progress-text">0%</span>
+  </div>
+
+    <p class="text-small" style="margin-top: 12px;">
+      Once submitted, you will receive a tracking ID which you can use to monitor
+      the status of your planning application.
+    </p>
+  </div>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  // Display logged-in user info
+  const userId = localStorage.getItem('user_id');
+  const userPhone = localStorage.getItem('user_phone');
+  if (userId) {
+    document.getElementById('displayUserId').textContent = 'USR-' + String(userId).padStart(4, '0');
+  }
+  if (userPhone) {
+    document.getElementById('displayUserName').textContent = userPhone;
+  }
+
+  const devType = document.getElementById("devType");
+  const allFiles = document.querySelectorAll("input[type='file']");
+  const nonResFiles = document.querySelectorAll(".nonres input");
+  const submitBtn = document.getElementById("submit-btn");
+
+  devType.addEventListener("change", () => {
+
+    // Lock everything first
+    allFiles.forEach(f => {
+      f.value = "";
+      f.disabled = true;
+    });
+
+    if (devType.value === "res") {
+      // Residential: enable common docs only
+      allFiles.forEach(f => f.disabled = false);
+      nonResFiles.forEach(f => f.disabled = true);
+
+    } else if (devType.value === "nonres") {
+      // Non-Residential: enable ALL docs
+      allFiles.forEach(f => f.disabled = false);
+    }
+
+  });
+  function getSelectedDocuments() {
+    const rows = document.querySelectorAll(".doc-row");
+    const selectedDocuments = [];
+
+    rows.forEach((row) => {
+      const fileInput = row.querySelector('input[type="file"]');
+      const documentName = row.querySelector('.doc-name').textContent.trim();
+
+      if (!fileInput.disabled && fileInput.files.length > 0) {
+        selectedDocuments.push({
+          documentType: documentName,
+          file: fileInput.files[0]
+        });
+      }
+    });
+
+    return selectedDocuments;
+  }
+
+  async function readErrorMessage(response, fallbackMessage) {
+    try {
+      const payload = await response.json();
+      return payload.error || payload.message || fallbackMessage;
+    } catch (error) {
+      return fallbackMessage;
+    }
+  }
+
+  submitBtn.addEventListener("click", async () => {
+    try {
+
+      const userId = localStorage.getItem("user_id");
+
+      if (!userId) {
+        alert("Please login first");
+        window.location.href = "login.html";
+        return;
+      }
+
+      const selectedDocuments = getSelectedDocuments();
+
+      if (selectedDocuments.length === 0) {
+        alert("Select at least one enabled document before submitting");
+        return;
+      }
+
+      // STEP 1: CREATE APPLICATION
+      const res = await fetch(API_BASE + "/create-application", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId })
+      });
+
+      if (!res.ok) {
+        throw new Error(await readErrorMessage(res, "Unable to create application"));
+      }
+
+      const data = await res.json();
+
+      const applicationId = data.application_id;
+      const applicationCode = data.reference_no || data.trackingID;
+
+      localStorage.setItem("application_id", applicationId);
+      localStorage.setItem("application_code", applicationCode);
+
+      // STEP 2: UPLOAD ALL SELECTED DOCUMENTS
+      const uploadStatus = document.getElementById("upload-status");
+      const progressFill = document.getElementById("progress-fill");
+      const progressPercent = document.getElementById("upload-percent");
+
+      uploadStatus.style.display = "block";
+
+      for (let index = 0; index < selectedDocuments.length; index += 1) {
+        const selectedDocument = selectedDocuments[index];
+        const formData = new FormData();
+
+        formData.append("user_id", userId);
+        formData.append("application_id", applicationId);
+        formData.append("document_type", selectedDocument.documentType);
+        formData.append("document", selectedDocument.file);
+
+        const uploadResponse = await fetch(API_BASE + "/upload", {
+          method: "POST",
+          body: formData
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(await readErrorMessage(uploadResponse, "Unable to upload documents"));
+        }
+
+        const percent = Math.round(((index + 1) / selectedDocuments.length) * 100);
+        progressFill.style.width = percent + "%";
+        progressPercent.textContent = percent + "% - Uploaded " + selectedDocument.documentType;
+      }
+
+      // STEP 3: REDIRECT
+      window.location.href = "guide-success.html?applicationId=" + encodeURIComponent(applicationCode || "");
+
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Error submitting application");
+    }
+  });
+
+});
+</script>
+  <script src="user-session-strip.js"></script>
+</body>
+</html>
+
+

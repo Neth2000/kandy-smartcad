@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Portal – Kandy SmartCad</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="api-config.js"></script>
+</head>
+
+<body>
+
+<!--HEADER-->
+<header class="kmc-header">
+
+  <div class="kmc-logo">
+    Kandy<br>
+    <span>Municipal Council</span>
+  </div>
+
+  <nav class="kmc-nav">
+
+    <a href="index.html">Home</a>
+    <a href="#">Admin Portal</a>
+
+    <a href="#">Contact Info</a>
+    <a href="#">Settings</a>
+
+    <a href="login.html" class="login-btn">User Login</a>
+
+  </nav>
+</header>
+
+
+<!--MAIN-->
+<main class="main">
+
+  <div class="form-container">
+
+    <h2 class="text-center">Admin Portal Login</h2>
+
+    <!-- USERNAME -->
+    <div class="form-group">
+      <label for="adminUser">Username</label>
+      <input type="text" id="adminUser" placeholder="Enter username">
+    </div>
+
+    <!-- PASSWORD -->
+    <div class="form-group">
+      <label for="adminPass">Password</label>
+      <input type="password" id="adminPass" placeholder="Enter password">
+    </div>
+
+    <!-- ERROR MESSAGE -->
+    <div id="adminMsg" class="text-small text-center" style="margin-top:10px;"></div>
+
+    <!-- SUBMIT BUTTON -->
+    <div style="text-align:center; margin-top:20px;">
+      <button id="adminLoginBtn" class="btn-primary">
+        Submit
+      </button>
+    </div>
+
+  </div>
+
+</main>
+
+
+<!-- SCRIPT -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("adminLoginBtn");
+  const user = document.getElementById("adminUser");
+  const pass = document.getElementById("adminPass");
+  const msg  = document.getElementById("adminMsg");
+
+  async function login() {
+    const u = user.value.trim();
+    const p = pass.value.trim();
+
+    if (!u || !p) {
+      msg.style.color = "#9b0000";
+      msg.textContent = "Please fill both username and password.";
+      return;
+    }
+
+    msg.style.color = "#555";
+    msg.textContent = "Signing in...";
+
+    try {
+      const response = await fetch(API_BASE + "/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: p })
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Admin login failed");
+      }
+
+      localStorage.setItem("admin_user", JSON.stringify(payload.admin));
+      msg.style.color = "#057a20";
+      msg.textContent = "Login successful. Redirecting...";
+
+      setTimeout(() => {
+        window.location.href = "admin-dashboard.html";
+      }, 800);
+    } catch (error) {
+      msg.style.color = "#9b0000";
+      msg.textContent = error.message;
+    }
+  }
+
+  btn.addEventListener("click", login);
+
+  // ENTER key support
+  [user, pass].forEach(el => {
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        login();
+      }
+    });
+  });
+
+});
+</script>
+
+</body>
+</html>

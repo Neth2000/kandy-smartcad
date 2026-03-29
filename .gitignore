@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+Backend/node_modules/
+
+# Uploaded files (don't commit user data)
+Backend/uploads/
+
+# Environment variables
+.env
+Backend/.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/

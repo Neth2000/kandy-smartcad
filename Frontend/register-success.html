@@ -1,0 +1,85 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Account Created â€“ Kandy SmartCad</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="kmc-header">
+  <div class="kmc-logo">
+    Kandy<br>
+    <span>Municipal Council</span>
+  </div>
+
+  <nav class="kmc-nav">
+
+    <a href="index.html">Home</a>
+    <a href="about.html">About Us</a>
+
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-toggle">Services</button>
+
+      <div class="nav-dropdown-menu">
+        <a href="services.html">Public Services</a>
+        <a href="#">Online Registration</a>
+        <a href="#">Online Booking</a>
+        <a href="planning-main.html">Planning Portal</a>
+      </div>
+    </div>
+
+    <a href="departments.html">Departments & Divisions</a>
+    <a href="downloads.html">Downloads</a>
+
+    <a href="login.html" class="login-btn">Login</a>
+
+  </nav>
+</header>
+
+
+
+<main class="main">
+  <div class="form-container">
+    <h2 class="text-center">Account Created Successfully</h2>
+    <p class="text-small text-center">
+      Congratulations! Your user account has been created successfully.
+    </p>
+
+    <p class="text-small text-center" style="margin-top: 16px;">
+      You can now log in to your account using your email and password.
+    </p>
+
+    <p class="text-center" style="margin-top: 24px;">
+      <a href="login.html" class="btn-primary" style="text-decoration: none; display: inline-block; padding: 10px 24px;">Go to Login</a>
+    </p>
+  </div>
+</main>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const toggle = document.getElementById("servicesToggle");
+  const menu = document.getElementById("servicesMenu");
+
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation(); // prevent auto close
+    menu.classList.toggle("show");
+  });
+
+  menu.addEventListener("click", (e) => {
+    e.stopPropagation(); // keep open when clicking inside
+  });
+
+  // Close dropdown when clicking anywhere else
+  document.addEventListener("click", () => {
+    menu.classList.remove("show");
+  });
+
+});
+</script>
+  <script src="user-session-strip.js"></script>
+</body>
+</html>
+
+
+

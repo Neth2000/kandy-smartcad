@@ -1,0 +1,169 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Digital Cadastral System  Kandy SmartCad</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- Same purple header as other pages -->
+<header class="kmc-header">
+  <div class="kmc-logo">
+    Kandy<br>
+    <span>Municipal Council</span>
+  </div>
+
+  <nav class="kmc-nav">
+
+    <a href="index.html">Home</a>
+    <a href="about.html">About Us</a>
+
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-toggle">Services</button>
+
+      <div class="nav-dropdown-menu">
+        <a href="services.html">Public Services</a>
+        <a href="#">Online Registration</a>
+        <a href="#">Online Booking</a>
+        <a href="planning-main.html">Planning Portal</a>
+      </div>
+    </div>
+
+    <a href="departments.html">Departments & Divisions</a>
+    <a href="downloads.html">Downloads</a>
+
+    <a href="login.html" class="login-btn">Login</a>
+
+  </nav>
+</header>
+
+
+
+<main class="main">
+  <h2>Digital Cadastral System</h2>
+  <p class="text-small" style="font-size: 1rem; margin-top: 8px; line-height: 1.6;">
+    Use this tool to view land parcels and basic cadastral information.
+  </p>
+
+  <div class="two-column">
+    <!-- LEFT: simple info panel -->
+    <div class="panel">
+      <h3>How to use</h3>
+      <p class="text-small">
+        In the full system, you can click on a plot in the map to see the basic
+        parcel details.
+      </p>
+      <p class="text-small">
+        This page now shows the <strong>Cadastral Map</strong> of <strong>Walata GN Division</strong>.
+      </p>
+           <!-- Plot number input for future development -->
+      <div class="form-group" style="margin-top: 16px;">
+        <label for="dc-lot-number">
+          Add the plot number of your land plot that you thinking about a real estate development
+        </label>
+
+        <div class="dc-lot-actions">
+          <input
+            type="text"
+            id="dc-lot-number"
+            placeholder="Enter plot / lot number"
+          />
+          <button
+            type="button"
+            class="btn-primary"
+            id="dc-lot-check-btn"
+          >
+            Check
+          </button>
+        </div>
+
+        <p id="dc-lot-message" class="text-small"></p>
+      </div> 
+    </div>
+
+    <!-- RIGHT: map area with dummy ArcGIS web map -->
+    <div class="map-box">
+      <iframe
+        width="100%"
+        height="100%"
+        frameborder="0"
+        scrolling="no"
+        src="https://mrt.maps.arcgis.com/apps/mapviewer/index.html?webmap=cd2763d894dc4a66b58a01bd6ce17e9f&center=80.615233%2C7.277645&scale=9027.977411">
+      </iframe>
+    </div>
+  </div>
+</main>
+<script>
+  // Function called when user clicks "Check" or presses Enter
+  function handleLotCheck() {
+    const input = document.getElementById("dc-lot-number");
+    const message = document.getElementById("dc-lot-message");
+    const lot = (input.value || "").trim();   // use 'lot' consistently
+
+    // 1. Validation check if empty
+    if (!lot) {
+      message.style.color = "#9b0000";
+      message.textContent = "Please enter a plot number before checking.";
+      return;
+    }
+
+    // 2. Optional: clear / update helper text
+    message.style.color = "#333333";
+    message.textContent = `Checking plot number ${lot} in the planning guide...`;
+
+    // 3. Redirect to Planning Approval Guide with lot in URL
+    window.location.href = "planning-guide.html?lot=" + encodeURIComponent(lot);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const input = document.getElementById("dc-lot-number");
+    const btn = document.getElementById("dc-lot-check-btn");
+
+    // When button is clicked
+    if (btn) {
+      btn.addEventListener("click", handleLotCheck);
+    }
+
+    // When user presses Enter while typing in the input
+    if (input) {
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();  // stop default form submit / page reload
+          handleLotCheck();        // behave exactly like clicking "Check"
+        }
+      });
+    }
+  });
+</script>
+
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const toggle = document.getElementById("servicesToggle");
+  const menu = document.getElementById("servicesMenu");
+
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation(); // prevent auto close
+    menu.classList.toggle("show");
+  });
+
+  menu.addEventListener("click", (e) => {
+    e.stopPropagation(); // keep open when clicking inside
+  });
+
+  // Close dropdown when clicking anywhere else
+  document.addEventListener("click", () => {
+    menu.classList.remove("show");
+  });
+
+});
+</script>
+
+  <script src="user-session-strip.js"></script>
+</body>
+</html>
+
+
+
