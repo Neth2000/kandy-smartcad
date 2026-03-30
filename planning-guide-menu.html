@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <title>Planning Approval Guide â€“ Sections</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="kmc-header">
+  <div class="kmc-logo">
+    Kandy<br>
+    <span>Municipal Council</span>
+  </div>
+
+  <nav class="kmc-nav">
+
+    <a href="index.html">Home</a>
+    <a href="about.html">About Us</a>
+
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-toggle">Services</button>
+
+      <div class="nav-dropdown-menu">
+        <a href="services.html">Public Services</a>
+        <a href="#">Online Registration</a>
+        <a href="#">Online Booking</a>
+        <a href="planning-main.html">Planning Portal</a>
+      </div>
+    </div>
+
+    <a href="departments.html">Departments & Divisions</a>
+    <a href="downloads.html">Downloads</a>
+
+    <a href="login.html" class="login-btn">Login</a>
+
+  </nav>
+</header>
+
+
+
+<main class="main">
+  <h2>Planning Approval Guide</h2>
+
+  <div class="panel">
+
+    <button class="btn-primary" onclick="alert('PPC guidelines coming soon')">
+      Preliminary Planning Clearance (PPC)
+    </button>
+
+    <!-- Building Approval goes to existing planning-guide.html -->
+    <button class="btn-primary" onclick="window.location.href='planning-guide.html'">
+      Building Approval
+    </button>
+
+    <button class="btn-primary" onclick="alert('Certificate of Conformity coming soon')">
+      Certificate of Conformity (CoC)
+    </button>
+
+  </div>
+</main>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const toggle = document.getElementById("servicesToggle");
+  const menu = document.getElementById("servicesMenu");
+
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation(); // prevent auto close
+    menu.classList.toggle("show");
+  });
+
+  menu.addEventListener("click", (e) => {
+    e.stopPropagation(); // keep open when clicking inside
+  });
+
+  // Close dropdown when clicking anywhere else
+  document.addEventListener("click", () => {
+    menu.classList.remove("show");
+  });
+
+});
+</script>
+  <script src="user-session-strip.js"></script>
+</body>
+</html>
+
+
+

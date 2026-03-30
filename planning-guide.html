@@ -1,0 +1,404 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Planning Approval Guide â€“ Kandy SmartCad</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="kmc-header">
+  <div class="kmc-logo">
+    Kandy<br>
+    <span>Municipal Council</span>
+  </div>
+
+  <nav class="kmc-nav">
+
+    <a href="index.html">Home</a>
+    <a href="about.html">About Us</a>
+
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-toggle">Services</button>
+
+      <div class="nav-dropdown-menu">
+        <a href="services.html">Public Services</a>
+        <a href="#">Online Registration</a>
+        <a href="#">Online Booking</a>
+        <a href="planning-main.html">Planning Portal</a>
+      </div>
+    </div>
+
+    <a href="departments.html">Departments & Divisions</a>
+    <a href="downloads.html">Downloads</a>
+
+    <a href="login.html" class="login-btn">Login</a>
+
+  </nav>
+</header>
+
+
+
+<main class="main">
+  <h2>Planning Approval Guide</h2>
+  <p class="text-small" style="font-size: 1rem; margin-top: 8px; line-height: 1.6;">
+    Enter basic information about your proposed development. The image on the right
+    shows the key parts of a building and plot to help you fill the form correctly.
+  </p>
+
+  <div class="two-column">
+    <!-- LEFT: form -->
+    <div class="panel">
+      <h3>Details About Proposed Development</h3>
+
+      <div class="form-group">
+        <label for="lotNumber">Land Parcel No.</label>
+        <input type="text" id="lotNumber" placeholder="Enter Lot No.">
+</div>
+
+
+      <div class="form-group">
+        <label for="landUse">Use of Land</label>
+        <select id="landUse">
+    <option value="">-- Select land use --</option>
+    <option value="Residential">Residential</option>
+    <option value="Commercial">Commercial</option>
+    <option value="Healthcare">Healthcare</option>
+  </select>
+      </div>
+
+
+      <div class="form-group">
+        <label for="landExtent">Land Extent (sq.m)</label>
+        <input type="text" id="landExtent" placeholder="e.g., 300" />
+      </div>
+
+      <div class="form-group">
+        <label for="buildingArea">Approximate Total Floor Area (sq.m)</label>
+        <input type="text" id="buildingArea" placeholder="e.g., 180" />
+      </div>
+
+      <div class="form-group">
+        <label for="floors">Number of Floors</label>
+        <input type="text" id="floors" placeholder="e.g., 2" />
+      </div>
+
+      <div class="form-group">
+  <label for="roadWidth">Road Width (m)</label>
+  <select id="roadWidth">
+    <option value="">-- Select road width --</option>
+    <option value="3">3 m</option>
+    <option value="4.5">4.5 m</option>
+    <option value="7">7 m</option>
+    <option value="9">9 m</option>
+    <option value="12">12 m</option>
+    <option value="15">Above 15 m</option>
+  </select>
+</div>
+
+      <div class="form-group">
+        <label for="frontage">Site Frontage (m)</label>
+        <input type="text" id="frontage" placeholder="e.g., 6" />
+      </div>
+
+
+      <div class="form-group">
+        <label for="rearSpace">Rear Space (m)</label>
+        <input type="text" id="rearSpace" placeholder="Distance from back boundary" />
+      </div>
+
+      <div class="form-group">
+        <label for="sideSpace">Side Space (m)</label>
+        <input type="text" id="sideSpace" placeholder="Minimum distance to side boundary" />
+      </div>
+
+      <!-- For now, just show a simple message when clicking -->
+      <button class="btn-primary" type="button" onclick="checkApproval()">Check Permissibility</button>
+
+      <div id="resultBox" class="result-box"></div>
+
+
+
+
+      <div id="guideResult" class="text-small" style="margin-top: 16px;"></div>
+    </div>
+
+    <!-- RIGHT: support image -->
+    <div class="panel">
+      <h3>Support Diagram</h3>
+     <img src="./guide-diagram.png.png"
+     alt="Building and plot layout diagram"
+     class="support-img" />
+
+
+      <p class="support-caption">
+        This diagram shows key elements such as front setback, rear space, side spaces,
+        road width and building envelope. Use it as a reference when filling the form.
+      </p>
+    </div>
+  </div>
+</main>
+<script src="parcelData.js"></script>
+
+<script>
+
+
+// VALIDATION FUNCTION
+
+function validateForm() {
+  let requiredIds = [
+    "lotNumber",
+    "landUse",
+    "landExtent",
+    "buildingArea",
+    "floors",
+    "roadWidth",
+    "frontage",
+    "rearSpace",
+    "sideSpace"
+  ];
+
+  let valid = true;
+
+  requiredIds.forEach(id => {
+    let field = document.getElementById(id);
+
+    if (!field.value.trim()) {
+      field.classList.add("input-error");
+      valid = false;
+    } else {
+      field.classList.remove("input-error");
+    }
+  });
+
+  return valid;
+}
+
+  // Very simple demo logic (we can make this smarter later)
+  function showDemoResult() {
+    const landUse = document.getElementById("landUse").value.trim();
+    const floors = document.getElementById("floors").value.trim();
+
+    let msg = "";
+
+    if (!landUse || !floors) {
+      msg = "Please fill at least the use of land and number of floors.";
+    } else {
+      msg =
+        "Thank you. In the full system, this information will be checked against zoning and building regulations to decide whether the proposal is generally permissible and what documents are required.";
+    }
+
+    document.getElementById("guideResult").innerHTML = msg;
+  }
+</script>
+<script>
+function autoFillLotDetails(){
+  let lot = document.getElementById("lotNumber").value.trim().toUpperCase();
+
+  if(parcelData[lot]){
+
+    document.getElementById("landExtent").value = parcelData[lot].landExtent;
+    document.getElementById("roadWidth").value  = parcelData[lot].roadWidth;
+    document.getElementById("frontage").value   = parcelData[lot].frontage;
+    document.getElementById("rearSpace").value  = parcelData[lot].rearSpace;
+    document.getElementById("sideSpace").value  = parcelData[lot].sideSpace;
+
+    // Remove red warnings if autfilled
+    ["landExtent","roadWidth","frontage","rearSpace","sideSpace"].forEach(id=>{
+      document.getElementById(id).classList.remove("input-error");
+    });
+
+  } else {
+    alert("âš  Unknown Lot Number â€” Not found in dataset.");
+  }
+}
+
+
+
+// FIELD DEFINITIONS
+
+
+const fields = [
+  { id:"lotNumber", type:"text" },
+  { id:"landUse", type:"text" },
+  { id:"landExtent", type:"number" },
+  { id:"buildingArea", type:"number" },
+  { id:"floors", type:"number" },
+  { id:"frontage", type:"number" },
+  { id:"roadWidth", type:"number" },
+  { id:"rearSpace", type:"number" },
+  { id:"sideSpace", type:"number" }
+];
+
+
+// -------------------------------
+// VALIDATION
+// -------------------------------
+
+function validateForm(){
+  let allValid = true;
+
+  fields.forEach(f => {
+    let input = document.getElementById(f.id);
+    let val = input.value.trim();
+
+    // EMPTY
+    if(val === ""){
+      input.classList.add("input-error");
+      allValid = false;
+      return;
+    }
+
+    // NUMBER CHECK
+    if(f.type === "number" && isNaN(val)){
+      input.classList.add("input-error");
+      allValid = false;
+      return;
+    }
+
+    input.classList.remove("input-error");
+  });
+
+  return allValid;
+}
+
+// LIVE FIXING
+fields.forEach(f => {
+  let input = document.getElementById(f.id);
+  input.addEventListener("input", () => {
+    let val = input.value.trim();
+    if(val === "" || (f.type==="number" && isNaN(val))){
+      input.classList.add("input-error");
+    } else {
+      input.classList.remove("input-error");
+    }
+  });
+});
+
+
+// -------------------------------
+// PERMISSIBILITY RULE ENGINE
+// -------------------------------
+
+function checkApproval(){
+
+  let resultBox = document.getElementById("resultBox");
+  let applyBtn = document.getElementById("floatingApplyBtn");
+
+  // Validate first
+  if(!validateForm()){
+    resultBox.style.background = "#ffd6d6";
+    resultBox.style.color = "#9b0000";
+    resultBox.innerHTML = "âŒ Please fill all fields correctly.";
+    applyBtn.style.display = "none";
+    return;
+  }
+
+  // GET VALUES
+  let landUse = document.getElementById("landUse").value.trim().toLowerCase();
+  let floors = parseInt(document.getElementById("floors").value);
+  let rear = parseFloat(document.getElementById("rearSpace").value);
+  let side = parseFloat(document.getElementById("sideSpace").value);
+  let road = parseFloat(document.getElementById("roadWidth").value);
+
+  let messages = [];
+  let permissible = true;
+
+  // RULE 1: max floors based on road width
+  if(road < 4.5 && floors > 1){
+    permissible = false;
+    messages.push("Road < 4.5m â†’ max allowed 1 floor.");
+  }
+
+  if(road >= 4.5 && road < 7 && floors > 2){
+    permissible = false;
+    messages.push("Road 4.5â€“7m â†’ max allowed 2 floors.");
+  }
+
+  if(road >= 7 && road < 12 && floors > 3){
+    permissible = false;
+    messages.push("Road 7â€“12m â†’ max allowed 3 floors.");
+  }
+
+  if(road >= 12 && floors > 5){
+    permissible = false;
+    messages.push("Road â‰¥ 12m â†’ max allowed 5 floors.");
+  }
+
+  // RULE 2: Minimum spaces
+  if(rear < 1.5){
+    permissible = false;
+    messages.push("Rear space must be at least 1.5m.");
+  }
+
+  if(side < 1){
+    permissible = false;
+    messages.push("Side space must be at least 1m.");
+  }
+
+  // RULE 3: Healthcare must face road â‰¥ 9m
+  if(landUse === "healthcare" && road < 9){
+    permissible = false;
+    messages.push("Healthcare buildings require a 9m+ road.");
+  }
+
+
+  // -----------------------------
+  // SHOW RESULT
+  // -----------------------------
+
+  if(permissible){
+    resultBox.style.background = "#d2ffd9";
+    resultBox.style.color = "#057a20";
+    resultBox.innerHTML = "âœ” Your Development is PERMISSIBLE.";
+
+    // SHOW floating button
+    applyBtn.style.display = "block";
+
+  } else {
+    resultBox.style.background = "#ffd4d4";
+    resultBox.style.color = "#9b0000";
+    resultBox.innerHTML = "âŒ Not Permissible:<br>â€¢ " + messages.join("<br>â€¢ ");
+
+    // HIDE floating button
+    applyBtn.style.display = "none";
+  }
+}
+
+
+</script>
+
+
+<a id="floatingApplyBtn" href="guide-documents.html" class="floating-apply-btn" style="display:none;">
+  Apply for Approval
+</a>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const toggle = document.getElementById("servicesToggle");
+  const menu = document.getElementById("servicesMenu");
+
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation(); // prevent auto close
+    menu.classList.toggle("show");
+  });
+
+  menu.addEventListener("click", (e) => {
+    e.stopPropagation(); // keep open when clicking inside
+  });
+
+  // Close dropdown when clicking anywhere else
+  document.addEventListener("click", () => {
+    menu.classList.remove("show");
+  });
+
+});
+</script>
+  <script src="user-session-strip.js"></script>
+</body>
+
+</html>
+<script src="lots.js"></script>
+
+
+

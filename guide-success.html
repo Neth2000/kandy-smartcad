@@ -1,0 +1,99 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Application Submitted â€“ Kandy SmartCad</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="kmc-header">
+  <div class="kmc-logo">
+    Kandy<br>
+    <span>Municipal Council</span>
+  </div>
+
+  <nav class="kmc-nav">
+
+    <a href="index.html">Home</a>
+    <a href="about.html">About Us</a>
+
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-toggle">Services</button>
+
+      <div class="nav-dropdown-menu">
+        <a href="services.html">Public Services</a>
+        <a href="#">Online Registration</a>
+        <a href="#">Online Booking</a>
+        <a href="planning-main.html">Planning Portal</a>
+      </div>
+    </div>
+
+    <a href="departments.html">Departments & Divisions</a>
+    <a href="downloads.html">Downloads</a>
+
+    <a href="login.html" class="login-btn">Login</a>
+
+  </nav>
+</header>
+
+
+
+<main class="main">
+  <div class="form-container">
+    <h2 class="text-center">Your Documents Have Been Submitted</h2>
+    <p class="text-small text-center">
+      Thank you. Your application has been received by Kandy Municipal Council.
+    </p>
+
+    <p class="text-center" style="font-size: 0.95rem; margin-top: 16px;">
+      <strong>Your Application ID:</strong> <a href="#" id="applicationIdLink" class="link"></a>
+    </p>
+    <p class="text-small text-center" style="margin-top: 16px;">
+      You can use this ID to check your application status in the
+      <a href="tracking.html" class="link">Planning Approval Tracking</a> page.
+    </p>
+  </div>
+</main>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const toggle = document.getElementById("servicesToggle");
+  const menu = document.getElementById("servicesMenu");
+
+  if (toggle && menu) {
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      menu.classList.toggle("show");
+    });
+
+    menu.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+
+    document.addEventListener("click", () => {
+      menu.classList.remove("show");
+    });
+  }
+
+  // Set application ID from URL, with localStorage fallback
+  const urlParams = new URLSearchParams(window.location.search);
+  const applicationId = urlParams.get('applicationId') || localStorage.getItem('application_code');
+  const link = document.getElementById('applicationIdLink');
+
+  if (applicationId && link) {
+    link.textContent = applicationId;
+    link.href = 'tracking.html?trackingId=' + encodeURIComponent(applicationId);
+  } else if (link) {
+    link.textContent = 'Not available';
+    link.removeAttribute('href');
+  }
+
+});
+</script>
+  <script src="user-session-strip.js"></script>
+</body>
+</html>
+
+
+

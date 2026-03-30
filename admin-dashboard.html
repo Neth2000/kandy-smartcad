@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard – Kandy SmartCad</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="api-config.js"></script>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="kmc-header">
+
+  <div class="kmc-logo">
+    Kandy<br>
+    <span>Municipal Council</span>
+  </div>
+
+  <nav class="kmc-nav">
+    <a href="admin-dashboard.html" class="active-tab">All Submissions</a>
+    <a href="#">Approved</a>
+    <a href="#">Rejected</a>
+    <a href="#">Planning Committee</a>
+    <a href="#">Final Approved</a>
+    <a href="admin-employees.html" id="navEmployees" style="display:none;">Employees</a>
+
+  </nav>
+
+  <!-- USER PROFILE (RIGHT SIDE) -->
+  <div class="admin-profile">
+    <span id="adminName">Admin</span>
+    <div class="profile-circle" id="adminInitial">A</div>
+    <button id="adminLogoutBtn" class="btn-logout" type="button">&#x2192; Sign Out</button>
+  </div>
+
+</header>
+
+
+<!-- ===== MAIN ===== -->
+<main class="main">
+
+  <h2>All Submissions</h2>
+
+  <div class="panel">
+
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Reference Number</th>
+          <th>Date</th>
+          <th>Applicant</th>
+          <th>Documents</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody id="applicationsTableBody">
+        <tr>
+          <td colspan="6">Loading submissions...</td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div>
+
+</main>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const adminData = localStorage.getItem("admin_user");
+  const tableBody = document.getElementById("applicationsTableBody");
+  const adminName = document.getElementById("adminName");
+  const adminInitial = document.getElementById("adminInitial");
+  const adminLogoutBtn = document.getElementById("adminLogoutBtn");
+  const navEmployees = document.getElementById("navEmployees");
+
+  if (!adminData) {
+    window.location.href = "admin-login.html";
+    return;
+  }
+
+  let admin;
+  try {
+    admin = JSON.parse(adminData);
+    const displayName = admin.display_name || admin.username || "Admin";
+    adminName.textContent = displayName;
+    adminInitial.textContent = displayName.charAt(0).toUpperCase();
+
+    const isSystemAdmin =
+      admin.role === "super_admin" ||
+      String(admin.username || "").toLowerCase() === "admin" ||
+      String(displayName || "").toLowerCase().includes("system admin");
+
+    if (isSystemAdmin && navEmployees) {
+      navEmployees.style.display = "";
+    }
+  } catch (error) {
+    localStorage.removeItem("admin_user");
+    window.location.href = "admin-login.html";
+    return;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function formatDate(value) {
+    if (!value) {
+      return "-";
+    }
+
+    return new Date(value).toLocaleDateString();
+  }
+
+  async function loadApplications() {
+    try {
+      const response = await fetch(API_BASE + "/admin/applications");
+
+      if (!response.ok) {
+        throw new Error("Unable to load submissions");
+      }
+
+      const applications = await response.json();
+
+      if (applications.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="6">No submissions found.</td></tr>';
+        return;
+      }
+
+      tableBody.innerHTML = applications.map((application) => `
+        <tr>
+          <td>${escapeHtml(application.reference_no || "Pending")}</td>
+          <td>${escapeHtml(formatDate(application.created_at))}</td>
+          <td>${escapeHtml(application.phone || "-")}</td>
+          <td>${escapeHtml(application.document_count || 0)}</td>
+          <td>${escapeHtml(application.status || "pending")}</td>
+          <td>
+            <button class="btn-primary small-btn" onclick="window.location.href='admin-review.html?ref=${encodeURIComponent(application.reference_no || "")}'">
+              Open
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    } catch (error) {
+      tableBody.innerHTML = '<tr><td colspan="6">Failed to load submissions.</td></tr>';
+    }
+  }
+
+  adminLogoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("admin_user");
+    window.location.href = "admin-login.html";
+  });
+
+  loadApplications();
+});
+
+
+</script>
+
+</body>
+</html>
