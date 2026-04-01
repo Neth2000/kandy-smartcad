@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
-  <title>Planning Portal â€“ Kandy SmartCad</title>
+  <title>Planning Portal - Kandy SmartCad</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -18,12 +18,12 @@
     <a href="about.html">About Us</a>
 
     <div class="nav-dropdown">
-      <button class="nav-dropdown-toggle">Services</button>
+      <a id="servicesToggle" href="services.html" class="nav-dropdown-toggle">Services</a>
 
-      <div class="nav-dropdown-menu">
+      <div id="servicesMenu" class="nav-dropdown-menu">
         <a href="services.html">Public Services</a>
-        <a href="#">Online Registration</a>
-        <a href="#">Online Booking</a>
+        <a href="online-registration.html">Online Registration</a>
+        <a href="online-booking.html">Online Booking</a>
         <a href="planning-main.html">Planning Portal</a>
       </div>
     </div>
@@ -45,19 +45,19 @@
     <div class="card">
       <h3>Planning Approval Guide</h3>
       <p>Check permissibility and required documents.</p>
-      <a href="planning-guide-menu.html">Open â†’</a>
+      <a href="planning-guide-menu.html">Open -&gt;</a>
     </div>
 
     <div class="card">
       <h3>Digital Cadastral System</h3>
       <p>Search and view cadastral parcels.</p>
-      <a href="digital-cadastral.html">Open â†’</a>
+      <a href="digital-cadastral.html">Open -&gt;</a>
     </div>
 
     <div class="card">
       <h3>Planning Approval Tracking</h3>
       <p>Track the status of your application.</p>
-      <a href="tracking.html">Open â†’</a>
+      <a href="tracking.html">Open -&gt;</a>
     </div>
   </div>
 </main>
@@ -86,6 +86,8 @@ document.addEventListener("DOMContentLoaded", () => {
   <script src="user-session-strip.js"></script>
 </body>
 </html>
+
+
 
 
 

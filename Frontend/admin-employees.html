@@ -68,7 +68,7 @@
           <input type="text" id="empFullName" placeholder="e.g. Kamal Perera" />
         </div>
         <div class="emp-form-group">
-          <label for="empId">Employee ID</label>
+          <label for="empId">Employee ID *</label>
           <input type="text" id="empId" placeholder="e.g. EMP-0012" />
         </div>
       </div>
@@ -85,14 +85,11 @@
           </select>
         </div>
       </div>
-      <div class="emp-form-row">
+      <div class="emp-form-row single">
         <div class="emp-form-group">
-          <label for="empPass">Password *</label>
-          <input type="password" id="empPass" placeholder="Set a strong password" autocomplete="new-password" />
-        </div>
-        <div class="emp-form-group">
-          <label for="empPassConfirm">Confirm Password *</label>
-          <input type="password" id="empPassConfirm" placeholder="Re-enter password" autocomplete="new-password" />
+          <p style="margin:0; padding:8px 12px; background:#f0f4ff; border:1px solid #c7d7ff; border-radius:6px; font-size:0.85rem; color:#3b4fa0;">
+            <strong>Initial Password:</strong> The Employee ID will be used as the initial login password. The employee should change it after first login.
+          </p>
         </div>
       </div>
       <div class="emp-msg" id="addMsg"></div>
@@ -214,20 +211,12 @@ document.getElementById("addBtn").addEventListener("click", async () => {
   const empId    = document.getElementById("empId").value.trim();
   const username = document.getElementById("empUsername").value.trim();
   const role     = document.getElementById("empRole").value;
-  const pass     = document.getElementById("empPass").value;
-  const passConf = document.getElementById("empPassConfirm").value;
   const msg      = document.getElementById("addMsg");
 
   msg.style.color = "#9b0000";
 
-  if (!fullName || !username || !pass) {
-    msg.textContent = "Full name, username, and password are required."; return;
-  }
-  if (pass.length < 6) {
-    msg.textContent = "Password must be at least 6 characters."; return;
-  }
-  if (pass !== passConf) {
-    msg.textContent = "Passwords do not match."; return;
+  if (!fullName || !username || !empId) {
+    msg.textContent = "Full name, username, and employee ID are required."; return;
   }
 
   msg.style.color = "#555";
@@ -237,16 +226,16 @@ document.getElementById("addBtn").addEventListener("click", async () => {
     const resp = await fetch(`${API}/admin/employees`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestedById: me.id, employee_id: empId, full_name: fullName, username, password: pass, role })
+      body: JSON.stringify({ requestedById: me.id, employee_id: empId, full_name: fullName, username, password: empId, role })
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || "Failed to add employee");
 
     msg.style.color = "#057a20";
-    msg.textContent = `Employee "${fullName}" added successfully.`;
+    msg.textContent = `Employee "${fullName}" added. Initial password: ${empId}`;
 
     // Clear form
-    ["empFullName","empId","empUsername","empPass","empPassConfirm"].forEach(id => {
+    ["empFullName","empId","empUsername"].forEach(id => {
       document.getElementById(id).value = "";
     });
     document.getElementById("empRole").value = "officer";

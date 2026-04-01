@@ -17,13 +17,12 @@
   </div>
 
   <nav class="kmc-nav">
-    <a href="admin-dashboard.html" class="active-tab">All Submissions</a>
-    <a href="#">Approved</a>
-    <a href="#">Rejected</a>
-    <a href="#">Planning Committee</a>
-    <a href="#">Final Approved</a>
-    <a href="admin-employees.html" id="navEmployees" style="display:none;">Employees</a>
-
+    <a href="admin-dashboard.html" id="navAll">All Submissions</a>
+    <a href="admin-dashboard.html?status=approved" id="navApproved">Approved</a>
+    <a href="admin-dashboard.html?status=rejected" id="navRejected">Rejected</a>
+    <a href="admin-dashboard.html?status=committee" id="navCommittee">Planning Committee</a>
+    <a href="admin-dashboard.html?status=final_approved" id="navFinalApproved">Final Approved</a>
+    <a href="admin-employees.html" id="navEmployees">Employees</a>
   </nav>
 
   <!-- USER PROFILE (RIGHT SIDE) -->
@@ -39,7 +38,7 @@
 <!-- ===== MAIN ===== -->
 <main class="main">
 
-  <h2>All Submissions</h2>
+  <h2 id="pageTitle">All Submissions</h2>
 
   <div class="panel">
 
@@ -72,12 +71,35 @@ document.addEventListener("DOMContentLoaded", () => {
   const adminName = document.getElementById("adminName");
   const adminInitial = document.getElementById("adminInitial");
   const adminLogoutBtn = document.getElementById("adminLogoutBtn");
-  const navEmployees = document.getElementById("navEmployees");
 
   if (!adminData) {
     window.location.href = "admin-login.html";
     return;
   }
+
+  // Read optional status filter from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const statusFilter = urlParams.get("status") || "";
+
+  // Set active nav tab and page title
+  const STATUS_LABELS = {
+    "": "All Submissions",
+    "approved": "Approved Applications",
+    "rejected": "Rejected Applications",
+    "committee": "Planning Committee",
+    "final_approved": "Final Approved"
+  };
+  const NAV_IDS = {
+    "": "navAll",
+    "approved": "navApproved",
+    "rejected": "navRejected",
+    "committee": "navCommittee",
+    "final_approved": "navFinalApproved"
+  };
+  document.getElementById("pageTitle").textContent = STATUS_LABELS[statusFilter] || "All Submissions";
+  const activeNavId = NAV_IDS[statusFilter] || "navAll";
+  const activeNav = document.getElementById(activeNavId);
+  if (activeNav) activeNav.classList.add("active-tab");
 
   let admin;
   try {
@@ -85,15 +107,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const displayName = admin.display_name || admin.username || "Admin";
     adminName.textContent = displayName;
     adminInitial.textContent = displayName.charAt(0).toUpperCase();
-
-    const isSystemAdmin =
-      admin.role === "super_admin" ||
-      String(admin.username || "").toLowerCase() === "admin" ||
-      String(displayName || "").toLowerCase().includes("system admin");
-
-    if (isSystemAdmin && navEmployees) {
-      navEmployees.style.display = "";
-    }
   } catch (error) {
     localStorage.removeItem("admin_user");
     window.location.href = "admin-login.html";
@@ -119,7 +132,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadApplications() {
     try {
-      const response = await fetch(API_BASE + "/admin/applications");
+      const url = statusFilter
+        ? `${API_BASE}/admin/applications?status=${encodeURIComponent(statusFilter)}`
+        : `${API_BASE}/admin/applications`;
+      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error("Unable to load submissions");

@@ -12,20 +12,14 @@ app.use(cors());
 app.use(express.json());
 
 // DB CONNECTION
-// On Render (or any cloud host), set DATABASE_URL env variable.
-// Falls back to local config for development.
-const pool = process.env.DATABASE_URL
-    ? new Pool({
-          connectionString: process.env.DATABASE_URL,
-          ssl: { rejectUnauthorized: false },
-      })
-    : new Pool({
-          user: 'postgres',
-          host: 'localhost',
-          database: 'cadastral',
-          password: '12345',
-          port: 5432,
-      });
+const pool = new Pool({
+    connectionString:
+        process.env.DATABASE_URL ||
+        'postgresql://neondb_owner:npg_iAao5cOLrbY9@ep-muddy-recipe-a1d53akz-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+    ssl: { rejectUnauthorized: false },
+});
+
+const PORT = process.env.PORT || 3000;
 
 // FILE STORAGE
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -49,6 +43,14 @@ function ensureApplicationDir(applicationId) {
     return applicationDir;
 }
 
+function getPublicBaseUrl(req) {
+    if (process.env.PUBLIC_BASE_URL) {
+        return process.env.PUBLIC_BASE_URL.replace(/\/$/, '');
+    }
+
+    return `${req.protocol}://${req.get('host')}`;
+}
+
 async function ensureSchema() {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS admin_users (
@@ -66,23 +68,38 @@ async function ensureSchema() {
     await pool.query(`ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`);
 
     await pool.query(`
-        ALTER TABLE applications
-        ADD COLUMN IF NOT EXISTS reference_no VARCHAR(50)
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) UNIQUE,
+            phone VARCHAR(20) UNIQUE,
+            password VARCHAR(255),
+            first_name VARCHAR(100),
+            last_name VARCHAR(100),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
     `);
 
     await pool.query(`
-        ALTER TABLE applications
-        ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending'
+        CREATE TABLE IF NOT EXISTS applications (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            reference_no VARCHAR(50),
+            status VARCHAR(50) DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
     `);
 
     await pool.query(`
-        ALTER TABLE documents
-        ADD COLUMN IF NOT EXISTS document_type VARCHAR(150)
-    `);
-
-    await pool.query(`
-        ALTER TABLE documents
-        ADD COLUMN IF NOT EXISTS review_status VARCHAR(50) DEFAULT 'pending'
+        CREATE TABLE IF NOT EXISTS documents (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER,
+            application_id INTEGER REFERENCES applications(id),
+            document_type VARCHAR(150),
+            file_name VARCHAR(255),
+            file_path VARCHAR(255),
+            review_status VARCHAR(50) DEFAULT 'pending',
+            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
     `);
 
     await pool.query(`
@@ -468,7 +485,7 @@ app.post('/upload', upload.single('document'), async (req, res) => {
                 document_type: document_type || 'Uncategorized',
                 file_name: file.originalname,
                 file_path: relativePath,
-                download_url: `http://localhost:3000/uploads/${relativePath}`
+                download_url: `${getPublicBaseUrl(req)}/uploads/${relativePath}`
             }
         });
 
@@ -543,7 +560,7 @@ app.get('/admin/applications/:reference/documents', async (req, res) => {
         const statusHistory = await getStatusHistory(application.id);
         const documents = documentResult.rows.map((document) => ({
             ...document,
-            download_url: `http://localhost:3000/uploads/${String(document.file_path || '').split(path.sep).join('/')}`
+            download_url: `${getPublicBaseUrl(req)}/uploads/${String(document.file_path || '').split(path.sep).join('/')}`
         }));
 
         res.json({ application, documents, statusHistory });
@@ -669,8 +686,9 @@ async function startServer() {
         await pool.query('SELECT NOW()');
         console.log('DB connected');
 
-        const PORT = process.env.PORT || 3000;
-        app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+        app.listen(PORT, () => {
+            console.log('Server running on ' + PORT);
+        });
     } catch (err) {
         console.error('Startup failed', err);
         process.exit(1);

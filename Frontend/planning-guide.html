@@ -2,11 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Planning Approval Guide â€“ Kandy SmartCad</title>
+  <title>Planning Approval Guide - Kandy SmartCad</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-
 <header class="kmc-header">
   <div class="kmc-logo">
     Kandy<br>
@@ -19,12 +18,12 @@
     <a href="about.html">About Us</a>
 
     <div class="nav-dropdown">
-      <button class="nav-dropdown-toggle">Services</button>
+      <a id="servicesToggle" href="services.html" class="nav-dropdown-toggle">Services</a>
 
-      <div class="nav-dropdown-menu">
+      <div id="servicesMenu" class="nav-dropdown-menu">
         <a href="services.html">Public Services</a>
-        <a href="#">Online Registration</a>
-        <a href="#">Online Booking</a>
+        <a href="online-registration.html">Online Registration</a>
+        <a href="online-booking.html">Online Booking</a>
         <a href="planning-main.html">Planning Portal</a>
       </div>
     </div>
@@ -209,7 +208,7 @@ function autoFillLotDetails(){
     });
 
   } else {
-    alert("âš  Unknown Lot Number â€” Not found in dataset.");
+    alert("Warning: Unknown lot number - not found in dataset.");
   }
 }
 
@@ -289,7 +288,7 @@ function checkApproval(){
   if(!validateForm()){
     resultBox.style.background = "#ffd6d6";
     resultBox.style.color = "#9b0000";
-    resultBox.innerHTML = "âŒ Please fill all fields correctly.";
+    resultBox.innerHTML = "Please fill all fields correctly.";
     applyBtn.style.display = "none";
     return;
   }
@@ -307,22 +306,22 @@ function checkApproval(){
   // RULE 1: max floors based on road width
   if(road < 4.5 && floors > 1){
     permissible = false;
-    messages.push("Road < 4.5m â†’ max allowed 1 floor.");
+    messages.push("Road < 4.5m -> max allowed 1 floor.");
   }
 
   if(road >= 4.5 && road < 7 && floors > 2){
     permissible = false;
-    messages.push("Road 4.5â€“7m â†’ max allowed 2 floors.");
+    messages.push("Road 4.5-7m -> max allowed 2 floors.");
   }
 
   if(road >= 7 && road < 12 && floors > 3){
     permissible = false;
-    messages.push("Road 7â€“12m â†’ max allowed 3 floors.");
+    messages.push("Road 7-12m -> max allowed 3 floors.");
   }
 
   if(road >= 12 && floors > 5){
     permissible = false;
-    messages.push("Road â‰¥ 12m â†’ max allowed 5 floors.");
+    messages.push("Road >= 12m -> max allowed 5 floors.");
   }
 
   // RULE 2: Minimum spaces
@@ -336,7 +335,7 @@ function checkApproval(){
     messages.push("Side space must be at least 1m.");
   }
 
-  // RULE 3: Healthcare must face road â‰¥ 9m
+  // RULE 3: Healthcare must face road >= 9m
   if(landUse === "healthcare" && road < 9){
     permissible = false;
     messages.push("Healthcare buildings require a 9m+ road.");
@@ -350,7 +349,7 @@ function checkApproval(){
   if(permissible){
     resultBox.style.background = "#d2ffd9";
     resultBox.style.color = "#057a20";
-    resultBox.innerHTML = "âœ” Your Development is PERMISSIBLE.";
+    resultBox.innerHTML = "Your Development is PERMISSIBLE.";
 
     // SHOW floating button
     applyBtn.style.display = "block";
@@ -358,7 +357,7 @@ function checkApproval(){
   } else {
     resultBox.style.background = "#ffd4d4";
     resultBox.style.color = "#9b0000";
-    resultBox.innerHTML = "âŒ Not Permissible:<br>â€¢ " + messages.join("<br>â€¢ ");
+    resultBox.innerHTML = "Not Permissible:<br>* " + messages.join("<br>* ");
 
     // HIDE floating button
     applyBtn.style.display = "none";
@@ -399,6 +398,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </html>
 <script src="lots.js"></script>
+
+
 
 
 

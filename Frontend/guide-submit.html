@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Submit Documents â€“ Kandy SmartCad</title>
+  <title>Submit Documents - Kandy SmartCad</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="api-config.js"></script>
   <style>
@@ -52,12 +52,12 @@
     <a href="about.html">About Us</a>
 
     <div class="nav-dropdown">
-      <button class="nav-dropdown-toggle">Services</button>
+      <a id="servicesToggle" href="services.html" class="nav-dropdown-toggle">Services</a>
 
-      <div class="nav-dropdown-menu">
+      <div id="servicesMenu" class="nav-dropdown-menu">
         <a href="services.html">Public Services</a>
-        <a href="#">Online Registration</a>
-        <a href="#">Online Booking</a>
+        <a href="online-registration.html">Online Registration</a>
+        <a href="online-booking.html">Online Booking</a>
         <a href="planning-main.html">Planning Portal</a>
       </div>
     </div>
@@ -72,7 +72,7 @@
 <main class="main">
   <div class="panel" style="display:flex; justify-content:space-between; align-items:center; padding: 10px 18px; margin-bottom: 12px; border-left: 4px solid #9b59ff;">
     <span style="font-size:1rem; color:#222;">
-      <strong>User Account ID:</strong> <span id="displayUserId" style="color:#9b59ff; font-weight:600;">â€”</span>
+      <strong>User Account ID:</strong> <span id="displayUserId" style="color:#9b59ff; font-weight:600;">-</span>
     </span>
     <span style="font-size:0.95rem; color:#555;" id="displayUserName"></span>
   </div>
@@ -358,5 +358,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <script src="user-session-strip.js"></script>
 </body>
 </html>
+
+
 
 
