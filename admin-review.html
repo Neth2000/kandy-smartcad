@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Application Review – Kandy SmartCad</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="api-config.js"></script>
+</head>
+<body>
+
+<header class="kmc-header">
+  <div class="kmc-logo">
+    Kandy<br>
+    <span>Municipal Council</span>
+  </div>
+
+  <nav class="kmc-nav">
+    <a href="admin-dashboard.html" class="active-tab">All Submissions</a>
+    <a href="#">Approved</a>
+    <a href="#">Rejected</a>
+    <a href="#">Planning Committee</a>
+    <a href="#">Final Approved</a>
+  </nav>
+
+  <div class="admin-profile">
+    <span id="adminName">Admin</span>
+    <div class="profile-circle" id="adminInitial">A</div>
+    <button id="adminLogoutBtn" class="btn-logout" type="button">&#x2192; Sign Out</button>
+  </div>
+</header>
+
+<main class="main">
+  <div class="panel">
+    <h3 id="refTitle">Reference:</h3>
+    <p id="applicationMeta" class="text-small">Loading application details...</p>
+    <div style="display:flex; gap:12px; align-items:center; margin-top:12px; flex-wrap:wrap;">
+      <select id="statusSelect" class="input" style="max-width:260px;">
+        <option value="submitted">Submitted</option>
+        <option value="under_review">Under Review</option>
+        <option value="committee">Committee</option>
+        <option value="approved">Approved</option>
+      </select>
+      <input id="statusNotes" class="input" type="text" placeholder="Add a short admin note" style="max-width:360px;" />
+      <button id="saveStatusBtn" class="btn-primary" type="button">Save Status</button>
+      <span id="statusMessage" class="text-small"></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Submitted Documents</h3>
+    <div id="documentsList">
+      <p class="text-small">Loading documents...</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Status History</h3>
+    <div id="historyList" class="text-small">Loading status history...</div>
+  </div>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const adminData = localStorage.getItem("admin_user");
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get("ref");
+  const refTitle = document.getElementById("refTitle");
+  const applicationMeta = document.getElementById("applicationMeta");
+  const documentsList = document.getElementById("documentsList");
+  const historyList = document.getElementById("historyList");
+  const statusSelect = document.getElementById("statusSelect");
+  const statusNotes = document.getElementById("statusNotes");
+  const saveStatusBtn = document.getElementById("saveStatusBtn");
+  const statusMessage = document.getElementById("statusMessage");
+  const adminName = document.getElementById("adminName");
+  const adminInitial = document.getElementById("adminInitial");
+  const adminLogoutBtn = document.getElementById("adminLogoutBtn");
+
+  if (!adminData) {
+    window.location.href = "admin-login.html";
+    return;
+  }
+
+  try {
+    const admin = JSON.parse(adminData);
+    const displayName = admin.display_name || admin.username || "Admin";
+    adminName.textContent = displayName;
+    adminInitial.textContent = displayName.charAt(0).toUpperCase();
+  } catch (error) {
+    localStorage.removeItem("admin_user");
+    window.location.href = "admin-login.html";
+    return;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function formatDate(value) {
+    if (!value) {
+      return "-";
+    }
+
+    return new Date(value).toLocaleString();
+  }
+
+  async function loadApplication() {
+    if (!ref) {
+      refTitle.textContent = "Reference: not provided";
+      applicationMeta.textContent = "Open this page from the admin dashboard.";
+      documentsList.innerHTML = "<p class='text-small'>No application selected.</p>";
+      return;
+    }
+
+    try {
+      const response = await fetch(API_BASE + "/admin/applications/" + encodeURIComponent(ref) + "/documents");
+
+      if (!response.ok) {
+        throw new Error("Unable to load application documents");
+      }
+
+      const data = await response.json();
+      const application = data.application;
+      const documents = data.documents || [];
+      const statusHistory = data.statusHistory || [];
+
+      refTitle.textContent = "Reference: " + (application.reference_no || ref);
+      const hasRejected = (data.documents || []).some(d => d.review_status === "rejected");
+      const statusLabel = application.status || "pending";
+      applicationMeta.innerHTML =
+        "Applicant: " + escapeHtml(application.phone || "-") +
+        " | Submitted: " + escapeHtml(formatDate(application.created_at)) +
+        " | Status: <strong style='color:" + (hasRejected ? "#c0392b" : "#2e7d32") + ";'>" +
+        escapeHtml(statusLabel) + (hasRejected ? " &#x26A0; Document(s) Rejected" : "") + "</strong>";
+      statusSelect.value = application.status || "submitted";
+
+      historyList.innerHTML = statusHistory.length > 0
+        ? statusHistory.map((item) => `
+          <div style="margin-bottom:10px;">
+            <strong>${escapeHtml(item.status_label || "-")}</strong> - ${escapeHtml(formatDate(item.created_at))}<br>
+            ${escapeHtml(item.notes || "")}
+          </div>
+        `).join("")
+        : "<p class='text-small'>No status history yet.</p>";
+
+      if (documents.length === 0) {
+        documentsList.innerHTML = "<p class='text-small'>No documents uploaded for this application.</p>";
+        return;
+      }
+
+      documentsList.innerHTML = documents.map((doc) => {
+        const rs = doc.review_status || "pending";
+        const badgeColor = rs === "approved" ? "#2e7d32" : rs === "rejected" ? "#c0392b" : "#888";
+        const badgeBg   = rs === "approved" ? "#e8f5e9" : rs === "rejected" ? "#fdecea" : "#f5f5f5";
+        return `
+        <div class="doc-item" id="doc-row-${doc.id}">
+          <div style="flex:1; min-width:0;">
+            <strong>${escapeHtml(doc.document_type || "Document")}</strong>
+            <span class="doc-status-badge" style="background:${badgeBg};color:${badgeColor};">${escapeHtml(rs)}</span><br>
+            <span class="text-small">${escapeHtml(doc.file_name || "-")} | Uploaded: ${escapeHtml(formatDate(doc.uploaded_at))}</span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+            <a class="btn-small" href="${escapeHtml(doc.download_url)}" target="_blank" rel="noopener noreferrer">View</a>
+            <a class="btn-primary small-btn" href="${escapeHtml(doc.download_url)}" download>Download</a>
+            <button class="btn-doc-approve" onclick="setDocStatus(${doc.id}, 'approved')" title="Approve">&#10003;</button>
+            <button class="btn-doc-reject"  onclick="setDocStatus(${doc.id}, 'rejected')" title="Reject">&#10007;</button>
+          </div>
+        </div>`;
+      }).join("");
+    } catch (error) {
+      applicationMeta.textContent = error.message;
+      documentsList.innerHTML = "<p class='text-small'>Failed to load documents.</p>";
+    }
+  }
+
+  async function saveStatus() {
+    if (!ref) {
+      return;
+    }
+
+    statusMessage.textContent = "Saving...";
+
+    try {
+      const response = await fetch(API_BASE + "/admin/applications/" + encodeURIComponent(ref) + "/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: statusSelect.value,
+          notes: statusNotes.value.trim()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to save status");
+      }
+
+      statusMessage.textContent = "Status updated.";
+      statusNotes.value = "";
+      loadApplication();
+    } catch (error) {
+      statusMessage.textContent = error.message;
+    }
+  }
+
+  window.setDocStatus = async function(docId, status) {
+    try {
+      const response = await fetch(API_BASE + "/admin/documents/" + docId + "/review", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ review_status: status })
+      });
+      if (!response.ok) throw new Error("Failed to update document status");
+      loadApplication();
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  saveStatusBtn.addEventListener("click", saveStatus);
+  adminLogoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("admin_user");
+    window.location.href = "admin-login.html";
+  });
+
+  loadApplication();
+});
+</script>
+
+</body>
+</html>

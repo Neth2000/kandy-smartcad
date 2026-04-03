@@ -1,0 +1,121 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kandy Municipal Council â€“ Planning Portal</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+  <!-- Header same for all pages -->
+<header class="kmc-header">
+  <div class="kmc-logo">
+    Kandy<br>
+    <span>Municipal Council</span>
+  </div>
+
+  <nav class="kmc-nav">
+
+    <a href="index.html">Home</a>
+    <a href="about.html">About Us</a>
+
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-toggle">Services</button>
+
+      <div class="nav-dropdown-menu">
+        <a href="services.html">Public Services</a>
+        <a href="#">Online Registration</a>
+        <a href="#">Online Booking</a>
+        <a href="planning-main.html">Planning Portal</a>
+      </div>
+    </div>
+
+    <a href="departments.html">Departments & Divisions</a>
+    <a href="downloads.html">Downloads</a>
+
+    <a href="login.html" class="login-btn">Login</a>
+
+  </nav>
+</header>
+
+
+
+
+  <main class="main">
+    <h2>Public Services</h2>
+    <p class="text-small" style="font-size: 1rem; margin-top: 8px; line-height: 1.6;">
+      Access our online services for registration, booking, and planning approvals.
+    </p>
+
+    <div class="card-grid">
+      <!-- Digital Cadastral System card -->
+      <div class="card">
+        <h3>Digital Cadastral System</h3>
+        <p>Use our tool to find cadastral data in your area.</p>
+        <a href="digital-cadastral.html" class="btn-primary small-btn">Open Cadastral System</a>
+      </div>
+
+      <!-- Planning Approval Guide card -->
+      <div class="card">
+        <h3>Planning Approval Guide</h3>
+        <p>
+          Get guidance on whether your proposal is permissible and what documents
+          are required.
+        </p>
+        <a href="planning-guide.html" class="btn-primary small-btn">Open Guide</a>
+      </div>
+
+      <!-- Planning Approval Tracking card -->
+      <div class="card">
+        <h3>Planning Approval Tracking</h3>
+        <p>Track the building approval process with your application ID.</p>
+        <a href="tracking.html" class="btn-primary small-btn">Track My Application</a>
+      </div>
+    </div>
+  </main>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const toggle = document.querySelector(".nav-dropdown-toggle");
+  const menu = document.querySelector(".nav-dropdown-menu");
+
+  toggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    menu.classList.toggle("show");
+  });
+
+  document.addEventListener("click", () => {
+    menu.classList.remove("show");
+  });
+
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const toggle = document.getElementById("servicesToggle");
+  const menu = document.getElementById("servicesMenu");
+
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation(); // prevent auto close
+    menu.classList.toggle("show");
+  });
+
+  menu.addEventListener("click", (e) => {
+    e.stopPropagation(); // keep open when clicking inside
+  });
+
+  // Close dropdown when clicking anywhere else
+  document.addEventListener("click", () => {
+    menu.classList.remove("show");
+  });
+
+});
+</script>
+  <script src="user-session-strip.js"></script>
+</body>
+</html>
+
+
+

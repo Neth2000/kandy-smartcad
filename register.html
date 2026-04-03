@@ -1,0 +1,159 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Register â€“ Kandy SmartCad</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="api-config.js"></script>
+</head>
+<body>
+
+<header class="kmc-header">
+  <div class="kmc-logo">
+    Kandy<br>
+    <span>Municipal Council</span>
+  </div>
+
+  <nav class="kmc-nav">
+
+    <a href="index.html">Home</a>
+    <a href="about.html">About Us</a>
+
+    <div class="nav-dropdown">
+      <button class="nav-dropdown-toggle">Services</button>
+
+      <div class="nav-dropdown-menu">
+        <a href="services.html">Public Services</a>
+        <a href="#">Online Registration</a>
+        <a href="#">Online Booking</a>
+        <a href="planning-main.html">Planning Portal</a>
+      </div>
+    </div>
+
+    <a href="departments.html">Departments & Divisions</a>
+    <a href="downloads.html">Downloads</a>
+
+    <a href="login.html" class="login-btn">Login</a>
+
+  </nav>
+</header>
+
+
+  <main class="main">
+    <div class="form-container">
+      <div class="text-small" style="text-align:right; margin-bottom: 8px;">
+        Already registered? <a href="login.html" class="link">Log in here</a>
+      </div>
+
+      <h2>Your Login Details</h2>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" placeholder="Email Address" />
+      </div>
+
+       <div class="form-group">
+        <label for="phone">Mobile Number</label>
+        <input type="tel" id="phone" placeholder="Mobile Number" />
+      </div>
+
+      <div class="form-group">
+        <label for="password1">Create Password</label>
+        <input type="password" id="password1" placeholder="Enter Password" />
+      </div>
+
+      <div class="form-group">
+        <label for="password2">Re-enter Password</label>
+        <input type="password" id="password2" placeholder="Re-Enter Password" />
+      </div>
+
+      <h2>Your Personal Details</h2>
+
+      <div class="form-group">
+        <label for="firstName">First Name</label>
+        <input type="text" id="firstName" placeholder="First Name" />
+      </div>
+
+      <div class="form-group">
+        <label for="surname">Surname</label>
+        <input type="text" id="surname" placeholder="Surname" />
+      </div>
+
+
+      <button class="btn-primary" type="button" onclick="registerUser()">Create Account</button>
+    </div>
+  </main>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const toggle = document.getElementById("servicesToggle");
+  const menu = document.getElementById("servicesMenu");
+
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation(); // prevent auto close
+    menu.classList.toggle("show");
+  });
+
+  menu.addEventListener("click", (e) => {
+    e.stopPropagation(); // keep open when clicking inside
+  });
+
+  // Close dropdown when clicking anywhere else
+  document.addEventListener("click", () => {
+    menu.classList.remove("show");
+  });
+
+});
+
+function registerUser() {
+    const password1 = document.querySelector('#password1').value;
+    const password2 = document.querySelector('#password2').value;
+
+    // Validate passwords match
+    if (password1 !== password2) {
+        alert('Passwords do not match!');
+        return;
+    }
+
+    if (password1.length < 6) {
+        alert('Password must be at least 6 characters long!');
+        return;
+    }
+
+    const data = {
+        email: document.querySelector('#email').value,
+        phone: document.querySelector('#phone').value,
+        password: password1,
+        firstName: document.querySelector('#firstName').value,
+        lastName: document.querySelector('#surname').value
+    };
+
+    // Validate required fields
+    if (!data.email || !data.phone || !data.firstName || !data.lastName) {
+        alert('Please fill in all fields!');
+        return;
+    }
+
+    fetch(API_BASE + '/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(res => {
+        if (!res.ok) throw new Error('Registration failed');
+        return res.text();
+    })
+    .then(msg => {
+        // Save phone number to display on success page
+        sessionStorage.setItem('registered_phone', data.phone);
+        window.location.href = 'register-success.html';
+    })
+    .catch(err => alert('Error: ' + err.message));
+}
+</script>
+  <script src="user-session-strip.js"></script>
+</body>
+</html>
+
+
+
