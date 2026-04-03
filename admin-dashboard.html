@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const navEmployees = document.getElementById("navEmployees");
 
   if (!adminData) {
-    window.location.href = "admin-login.html";
+    window.location.href = "index.html";
     return;
   }
 
@@ -96,7 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   } catch (error) {
     localStorage.removeItem("admin_user");
-    window.location.href = "admin-login.html";
+    window.location.href = "index.html";
     return;
   }
 
@@ -153,7 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   adminLogoutBtn.addEventListener("click", () => {
     localStorage.removeItem("admin_user");
-    window.location.href = "admin-login.html";
+    window.location.href = "index.html";
   });
 
   loadApplications();

@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const adminLogoutBtn = document.getElementById("adminLogoutBtn");
 
   if (!adminData) {
-    window.location.href = "admin-login.html";
+    window.location.href = "index.html";
     return;
   }
 
@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
     adminInitial.textContent = displayName.charAt(0).toUpperCase();
   } catch (error) {
     localStorage.removeItem("admin_user");
-    window.location.href = "admin-login.html";
+    window.location.href = "index.html";
     return;
   }
 
@@ -169,7 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   adminLogoutBtn.addEventListener("click", () => {
     localStorage.removeItem("admin_user");
-    window.location.href = "admin-login.html";
+    window.location.href = "index.html";
   });
 
   loadApplications();

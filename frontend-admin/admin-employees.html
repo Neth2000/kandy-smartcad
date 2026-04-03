@@ -128,7 +128,7 @@ const API = API_BASE;
 
 // --- Auth check ---
 const rawAdmin = localStorage.getItem("admin_user");
-if (!rawAdmin) { window.location.href = "admin-login.html"; }
+if (!rawAdmin) { window.location.href = "index.html"; }
 
 const me = JSON.parse(rawAdmin);
 const resolvedName = me.display_name || me.username || "";
@@ -142,7 +142,7 @@ document.getElementById("adminInitial").textContent = (me.display_name || me.use
 
 document.getElementById("adminLogoutBtn").addEventListener("click", () => {
   localStorage.removeItem("admin_user");
-  window.location.href = "admin-login.html";
+  window.location.href = "index.html";
 });
 
 // Show/hide add form based on role

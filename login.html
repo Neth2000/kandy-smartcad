@@ -85,6 +85,10 @@
     const msg = document.getElementById("login-message");
 
     function handleLogin() {
+      const apiBase = (typeof API_BASE !== "undefined" && API_BASE)
+        ? API_BASE
+        : "https://kandy-smartcad-1.onrender.com";
+
       const p = (phoneInput.value || "").trim();
       const pw = (passInput.value || "").trim();
 
@@ -94,8 +98,14 @@
         return;
       }
 
+      // Show loading state
+      btn.disabled = true;
+      btn.textContent = "Please wait...";
+      msg.style.color = "#555";
+      msg.textContent = "Connecting to server, this may take up to 30 seconds...";
+
       // Call the backend login API
-      fetch(API_BASE + '/login', {
+      fetch(apiBase + '/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: p, password: pw })
@@ -111,7 +121,7 @@
       })
       .then(response => {
         msg.style.color = "#057a20";
-        msg.textContent = "Login successful. Redirectingâ€¦";
+        msg.textContent = "Login successful. Redirecting...";
 
         localStorage.setItem('user_id', String(response.user.id));
         localStorage.setItem('user_phone', String(response.user.phone));
@@ -122,7 +132,9 @@
       })
       .catch(err => {
         msg.style.color = "#9b0000";
-        msg.textContent = err.message;
+        msg.textContent = "Error: " + err.message + ". Please try again.";
+        btn.disabled = false;
+        btn.textContent = "Login";
       });
     }
 
@@ -146,6 +158,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const toggle = document.getElementById("servicesToggle");
   const menu = document.getElementById("servicesMenu");
+
+  if (!toggle || !menu) {
+    return;
+  }
 
   toggle.addEventListener("click", (e) => {
     e.stopPropagation(); // prevent auto close

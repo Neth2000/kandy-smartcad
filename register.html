@@ -89,6 +89,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggle = document.getElementById("servicesToggle");
   const menu = document.getElementById("servicesMenu");
 
+  if (!toggle || !menu) {
+    return;
+  }
+
   toggle.addEventListener("click", (e) => {
     e.stopPropagation(); // prevent auto close
     menu.classList.toggle("show");
@@ -106,6 +110,10 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function registerUser() {
+    const apiBase = (typeof API_BASE !== 'undefined' && API_BASE)
+        ? API_BASE
+        : 'https://kandy-smartcad-1.onrender.com';
+
     const password1 = document.querySelector('#password1').value;
     const password2 = document.querySelector('#password2').value;
 
@@ -134,7 +142,12 @@ function registerUser() {
         return;
     }
 
-    fetch(API_BASE + '/register', {
+    // Show loading state
+    const btn = document.querySelector('button.btn-primary');
+    btn.disabled = true;
+    btn.textContent = 'Creating account...';
+
+    fetch(apiBase + '/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -143,12 +156,15 @@ function registerUser() {
         if (!res.ok) throw new Error('Registration failed');
         return res.text();
     })
-    .then(msg => {
-        // Save phone number to display on success page
+    .then(() => {
         sessionStorage.setItem('registered_phone', data.phone);
         window.location.href = 'register-success.html';
     })
-    .catch(err => alert('Error: ' + err.message));
+    .catch(err => {
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+        alert('Error: ' + err.message + '. Please try again.');
+    });
 }
 </script>
   <script src="user-session-strip.js"></script>

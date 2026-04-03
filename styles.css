@@ -131,7 +131,7 @@ body {
   display: none;
   opacity: 0;
   transform: translateY(10px);
-  pointer-events: none;
+  pointer-events: auto;
   transition: 0.2s ease;
 
   background: #ffffff;
@@ -505,6 +505,11 @@ select {
 
 .btn-primary:hover {
   opacity: 0.95;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .text-center {

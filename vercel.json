@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "routes": [
+    {
+      "src": "/frontend-admin/?",
+      "dest": "/frontend-admin/index.html"
+    },
+    {
+      "src": "/frontend-user/?",
+      "dest": "/frontend-user/index.html"
+    },
+    {
+      "handle": "filesystem"
+    }
+  ]
+}
