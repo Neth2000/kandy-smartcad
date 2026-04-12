@@ -814,7 +814,7 @@ app.delete('/admin/applications/:reference/documents', async (req, res) => {
     }
 });
 
-app.get('/uploads/*', (req, res) => {
+app.get(/^\/uploads\/(.+)$/, (req, res) => {
     const requestedRelativePath = String(req.params[0] || '').replace(/\\/g, '/').replace(/^\/+/, '');
 
     if (!requestedRelativePath) {

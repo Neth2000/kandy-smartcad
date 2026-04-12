@@ -47,10 +47,7 @@
   </div>
 
   <div class="panel">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-      <h3 style="margin:0;">Submitted Documents</h3>
-      <button id="deleteAllDocsBtn" class="btn-doc-reject" type="button" style="padding:8px 12px;">Delete All</button>
-    </div>
+    <h3>Submitted Documents</h3>
     <div id="documentsList">
       <p class="text-small">Loading documents...</p>
     </div>
@@ -75,7 +72,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const statusNotes = document.getElementById("statusNotes");
   const saveStatusBtn = document.getElementById("saveStatusBtn");
   const statusMessage = document.getElementById("statusMessage");
-  const deleteAllDocsBtn = document.getElementById("deleteAllDocsBtn");
   const adminName = document.getElementById("adminName");
   const adminInitial = document.getElementById("adminInitial");
   const adminLogoutBtn = document.getElementById("adminLogoutBtn");
@@ -248,36 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  async function deleteAllDocuments() {
-    if (!ref) {
-      return;
-    }
-
-    const confirmed = window.confirm("Delete ALL uploaded documents for this application? This cannot be undone.");
-    if (!confirmed) {
-      return;
-    }
-
-    statusMessage.textContent = "Deleting documents...";
-
-    try {
-      const response = await fetch(API_BASE + "/admin/applications/" + encodeURIComponent(ref) + "/documents", {
-        method: "DELETE"
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete all documents");
-      }
-
-      statusMessage.textContent = "All documents deleted.";
-      loadApplication();
-    } catch (error) {
-      statusMessage.textContent = error.message;
-    }
-  }
-
   saveStatusBtn.addEventListener("click", saveStatus);
-  deleteAllDocsBtn.addEventListener("click", deleteAllDocuments);
   adminLogoutBtn.addEventListener("click", () => {
     localStorage.removeItem("admin_user");
     window.location.href = "index.html";
