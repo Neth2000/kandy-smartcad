@@ -10,6 +10,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
 // DB CONNECTION
 const pool = new Pool({
@@ -23,11 +24,108 @@ const PORT = process.env.PORT || 3000;
 
 // FILE STORAGE
 const uploadsDir = path.join(__dirname, 'uploads');
+const legacyUploadsDir = path.join(process.cwd(), 'uploads');
+
 if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
+    fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+// Serve files from both current and legacy upload locations.
 app.use('/uploads', express.static(uploadsDir));
+if (legacyUploadsDir !== uploadsDir) {
+    app.use('/uploads', express.static(legacyUploadsDir));
+}
+
+function normalizeStoredFilePath(filePath) {
+    const normalized = String(filePath || '')
+        .replace(/\\/g, '/')
+        .replace(/^\/+/, '');
+
+    if (normalized.startsWith('uploads/')) {
+        return normalized.slice('uploads/'.length);
+    }
+
+    if (normalized.startsWith('Backend/uploads/')) {
+        return normalized.slice('Backend/uploads/'.length);
+    }
+
+    return normalized;
+}
+
+function getDocumentFileCandidates(filePath) {
+    const normalizedOriginal = String(filePath || '').replace(/\\/g, '/').replace(/^\/+/, '');
+    const normalized = normalizeStoredFilePath(normalizedOriginal);
+    const uniqueRelativeCandidates = [
+        normalized,
+        normalizedOriginal,
+        `uploads/${normalized}`,
+        `Backend/uploads/${normalized}`,
+    ].filter((value, index, arr) => value && arr.indexOf(value) === index);
+
+    const absoluteCandidates = [];
+    [uploadsDir, legacyUploadsDir].forEach((rootDir) => {
+        uniqueRelativeCandidates.forEach((relativePath) => {
+            absoluteCandidates.push(path.join(rootDir, relativePath));
+        });
+    });
+
+    return absoluteCandidates.filter((value, index, arr) => arr.indexOf(value) === index);
+}
+
+function findExistingDocumentFile(filePath) {
+    const candidates = getDocumentFileCandidates(filePath);
+    return candidates.find((candidate) => fs.existsSync(candidate));
+}
+
+function tryDeleteDocumentFile(filePath) {
+    const resolvedFile = findExistingDocumentFile(filePath);
+
+    if (!resolvedFile) {
+        return { deleted: false, reason: 'missing' };
+    }
+
+    try {
+        fs.unlinkSync(resolvedFile);
+        return { deleted: true, path: resolvedFile };
+    } catch (error) {
+        return { deleted: false, reason: 'unlink_failed', error: error.message };
+    }
+}
+
+function removeDirIfEmpty(dirPath) {
+    if (!dirPath || !fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
+        return false;
+    }
+
+    const remainingItems = fs.readdirSync(dirPath);
+    if (remainingItems.length > 0) {
+        return false;
+    }
+
+    fs.rmdirSync(dirPath);
+    return true;
+}
+
+function cleanupApplicationUploadDirs(applicationId) {
+    const folderName = `application-${applicationId}`;
+    const candidates = [
+        path.join(uploadsDir, folderName),
+        path.join(legacyUploadsDir, folderName),
+    ].filter((value, index, arr) => arr.indexOf(value) === index);
+
+    let removedCount = 0;
+    candidates.forEach((candidate) => {
+        try {
+            if (removeDirIfEmpty(candidate)) {
+                removedCount += 1;
+            }
+        } catch (error) {
+            // Ignore cleanup errors because the main delete action already succeeded.
+        }
+    });
+
+    return removedCount;
+}
 
 function sanitizeFileName(fileName) {
     return fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -560,7 +658,7 @@ app.get('/admin/applications/:reference/documents', async (req, res) => {
         const statusHistory = await getStatusHistory(application.id);
         const documents = documentResult.rows.map((document) => ({
             ...document,
-            download_url: `${getPublicBaseUrl(req)}/uploads/${String(document.file_path || '').split(path.sep).join('/')}`
+            download_url: `${getPublicBaseUrl(req)}/admin/documents/${document.id}/download`
         }));
 
         res.json({ application, documents, statusHistory });
@@ -624,6 +722,149 @@ app.patch('/admin/documents/:id/review', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Unable to update document status' });
+    }
+});
+
+app.delete('/admin/documents/:id', async (req, res) => {
+    const docId = parseInt(req.params.id, 10);
+
+    if (Number.isNaN(docId)) {
+        return res.status(400).json({ error: 'Invalid document id' });
+    }
+
+    try {
+        const result = await pool.query(
+            'SELECT id, application_id, file_name, file_path FROM documents WHERE id = $1',
+            [docId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        const document = result.rows[0];
+        const fileDeleteResult = tryDeleteDocumentFile(document.file_path);
+
+        await pool.query('DELETE FROM documents WHERE id = $1', [docId]);
+        const cleaned_folders = cleanupApplicationUploadDirs(document.application_id);
+
+        return res.json({
+            message: 'Document deleted',
+            id: docId,
+            application_id: document.application_id,
+            file_deleted: fileDeleteResult.deleted,
+            file_delete_reason: fileDeleteResult.reason || null,
+            cleaned_folders,
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Unable to delete document' });
+    }
+});
+
+app.delete('/admin/applications/:reference/documents', async (req, res) => {
+    const { reference } = req.params;
+
+    try {
+        const appResult = await pool.query(
+            'SELECT id FROM applications WHERE reference_no = $1',
+            [reference]
+        );
+
+        if (appResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Application not found' });
+        }
+
+        const applicationId = appResult.rows[0].id;
+        const docsResult = await pool.query(
+            'SELECT id, file_path FROM documents WHERE application_id = $1',
+            [applicationId]
+        );
+
+        let deletedFiles = 0;
+        let missingFiles = 0;
+
+        docsResult.rows.forEach((document) => {
+            const fileDeleteResult = tryDeleteDocumentFile(document.file_path);
+            if (fileDeleteResult.deleted) {
+                deletedFiles += 1;
+            } else if (fileDeleteResult.reason === 'missing') {
+                missingFiles += 1;
+            }
+        });
+
+        const deleteResult = await pool.query(
+            'DELETE FROM documents WHERE application_id = $1 RETURNING id',
+            [applicationId]
+        );
+        const cleaned_folders = cleanupApplicationUploadDirs(applicationId);
+
+        return res.json({
+            message: 'Application documents deleted',
+            reference,
+            application_id: applicationId,
+            deleted_documents: deleteResult.rowCount,
+            deleted_files: deletedFiles,
+            missing_files: missingFiles,
+            cleaned_folders,
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Unable to delete application documents' });
+    }
+});
+
+app.get('/uploads/*', (req, res) => {
+    const requestedRelativePath = String(req.params[0] || '').replace(/\\/g, '/').replace(/^\/+/, '');
+
+    if (!requestedRelativePath) {
+        return res.status(400).json({ error: 'Invalid upload path' });
+    }
+
+    const resolvedFile = findExistingDocumentFile(requestedRelativePath);
+
+    if (!resolvedFile) {
+        return res.status(404).json({
+            error: 'File not found on server storage',
+            requested_path: requestedRelativePath,
+        });
+    }
+
+    return res.sendFile(resolvedFile);
+});
+
+app.get('/admin/documents/:id/download', async (req, res) => {
+    const docId = parseInt(req.params.id, 10);
+
+    if (Number.isNaN(docId)) {
+        return res.status(400).json({ error: 'Invalid document id' });
+    }
+
+    try {
+        const result = await pool.query(
+            'SELECT id, file_name, file_path FROM documents WHERE id = $1',
+            [docId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        const document = result.rows[0];
+        const resolvedFile = findExistingDocumentFile(document.file_path);
+
+        if (!resolvedFile) {
+            return res.status(404).json({
+                error: 'File not found on server storage',
+                document_id: document.id,
+                file_path: document.file_path,
+            });
+        }
+
+        return res.download(resolvedFile, document.file_name || path.basename(resolvedFile));
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Unable to download document' });
     }
 });
 

@@ -47,7 +47,10 @@
   </div>
 
   <div class="panel">
-    <h3>Submitted Documents</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <h3 style="margin:0;">Submitted Documents</h3>
+      <button id="deleteAllDocsBtn" class="btn-doc-reject" type="button" style="padding:8px 12px;">Delete All</button>
+    </div>
     <div id="documentsList">
       <p class="text-small">Loading documents...</p>
     </div>
@@ -72,6 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const statusNotes = document.getElementById("statusNotes");
   const saveStatusBtn = document.getElementById("saveStatusBtn");
   const statusMessage = document.getElementById("statusMessage");
+  const deleteAllDocsBtn = document.getElementById("deleteAllDocsBtn");
   const adminName = document.getElementById("adminName");
   const adminInitial = document.getElementById("adminInitial");
   const adminLogoutBtn = document.getElementById("adminLogoutBtn");
@@ -157,6 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const rs = doc.review_status || "pending";
         const badgeColor = rs === "approved" ? "#2e7d32" : rs === "rejected" ? "#c0392b" : "#888";
         const badgeBg   = rs === "approved" ? "#e8f5e9" : rs === "rejected" ? "#fdecea" : "#f5f5f5";
+        const docDownloadUrl = API_BASE + "/admin/documents/" + encodeURIComponent(doc.id) + "/download";
         return `
         <div class="doc-item" id="doc-row-${doc.id}">
           <div style="flex:1; min-width:0;">
@@ -165,10 +170,11 @@ document.addEventListener("DOMContentLoaded", () => {
             <span class="text-small">${escapeHtml(doc.file_name || "-")} | Uploaded: ${escapeHtml(formatDate(doc.uploaded_at))}</span>
           </div>
           <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-            <a class="btn-small" href="${escapeHtml(doc.download_url)}" target="_blank" rel="noopener noreferrer">View</a>
-            <a class="btn-primary small-btn" href="${escapeHtml(doc.download_url)}" download>Download</a>
+            <a class="btn-small" href="${escapeHtml(docDownloadUrl)}" target="_blank" rel="noopener noreferrer">View</a>
+            <a class="btn-primary small-btn" href="${escapeHtml(docDownloadUrl)}" download>Download</a>
             <button class="btn-doc-approve" onclick="setDocStatus(${doc.id}, 'approved')" title="Approve">&#10003;</button>
             <button class="btn-doc-reject"  onclick="setDocStatus(${doc.id}, 'rejected')" title="Reject">&#10007;</button>
+            <button class="btn-small" onclick="deleteDocument(${doc.id})" title="Delete">Delete</button>
           </div>
         </div>`;
       }).join("");
@@ -221,7 +227,57 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  window.deleteDocument = async function(docId) {
+    const confirmed = window.confirm("Delete this uploaded document? This cannot be undone.");
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await fetch(API_BASE + "/admin/documents/" + encodeURIComponent(docId), {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete document");
+      }
+
+      loadApplication();
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  async function deleteAllDocuments() {
+    if (!ref) {
+      return;
+    }
+
+    const confirmed = window.confirm("Delete ALL uploaded documents for this application? This cannot be undone.");
+    if (!confirmed) {
+      return;
+    }
+
+    statusMessage.textContent = "Deleting documents...";
+
+    try {
+      const response = await fetch(API_BASE + "/admin/applications/" + encodeURIComponent(ref) + "/documents", {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete all documents");
+      }
+
+      statusMessage.textContent = "All documents deleted.";
+      loadApplication();
+    } catch (error) {
+      statusMessage.textContent = error.message;
+    }
+  }
+
   saveStatusBtn.addEventListener("click", saveStatus);
+  deleteAllDocsBtn.addEventListener("click", deleteAllDocuments);
   adminLogoutBtn.addEventListener("click", () => {
     localStorage.removeItem("admin_user");
     window.location.href = "index.html";
