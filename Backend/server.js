@@ -8,6 +8,9 @@ const fs = require('fs');
 
 const app = express();
 
+// Required behind Render/Reverse proxies so req.protocol reflects x-forwarded-proto.
+app.set('trust proxy', 1);
+
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
@@ -23,8 +26,13 @@ const pool = new Pool({
 const PORT = process.env.PORT || 3000;
 
 // FILE STORAGE
-const uploadsDir = path.join(__dirname, 'uploads');
-const legacyUploadsDir = path.join(process.cwd(), 'uploads');
+const uploadsDir = process.env.UPLOADS_DIR
+    ? path.resolve(process.env.UPLOADS_DIR)
+    : path.join(__dirname, 'uploads');
+const legacyUploadsDirs = [
+    path.join(__dirname, 'uploads'),
+    path.join(process.cwd(), 'uploads'),
+].filter((value, index, arr) => arr.indexOf(value) === index);
 
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
@@ -32,9 +40,11 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Serve files from both current and legacy upload locations.
 app.use('/uploads', express.static(uploadsDir));
-if (legacyUploadsDir !== uploadsDir) {
-    app.use('/uploads', express.static(legacyUploadsDir));
-}
+legacyUploadsDirs.forEach((legacyDir) => {
+    if (legacyDir !== uploadsDir) {
+        app.use('/uploads', express.static(legacyDir));
+    }
+});
 
 function normalizeStoredFilePath(filePath) {
     const normalized = String(filePath || '')
@@ -63,7 +73,7 @@ function getDocumentFileCandidates(filePath) {
     ].filter((value, index, arr) => value && arr.indexOf(value) === index);
 
     const absoluteCandidates = [];
-    [uploadsDir, legacyUploadsDir].forEach((rootDir) => {
+    [uploadsDir, ...legacyUploadsDirs].forEach((rootDir) => {
         uniqueRelativeCandidates.forEach((relativePath) => {
             absoluteCandidates.push(path.join(rootDir, relativePath));
         });
@@ -110,7 +120,7 @@ function cleanupApplicationUploadDirs(applicationId) {
     const folderName = `application-${applicationId}`;
     const candidates = [
         path.join(uploadsDir, folderName),
-        path.join(legacyUploadsDir, folderName),
+        ...legacyUploadsDirs.map((legacyDir) => path.join(legacyDir, folderName)),
     ].filter((value, index, arr) => arr.indexOf(value) === index);
 
     let removedCount = 0;
@@ -146,7 +156,14 @@ function getPublicBaseUrl(req) {
         return process.env.PUBLIC_BASE_URL.replace(/\/$/, '');
     }
 
-    return `${req.protocol}://${req.get('host')}`;
+    const forwardedProto = String(req.get('x-forwarded-proto') || req.protocol || 'https')
+        .split(',')[0]
+        .trim()
+        .toLowerCase();
+    const protocol = forwardedProto || 'https';
+    const host = req.get('x-forwarded-host') || req.get('host');
+
+    return `${protocol}://${host}`;
 }
 
 async function ensureSchema() {
@@ -926,6 +943,7 @@ async function startServer() {
         await ensureDefaultAdmin();
         await pool.query('SELECT NOW()');
         console.log('DB connected');
+        console.log('Uploads directory:', uploadsDir);
 
         app.listen(PORT, () => {
             console.log('Server running on ' + PORT);
