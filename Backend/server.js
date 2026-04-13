@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const multer = require('multer');
+const { v2: cloudinary } = require('cloudinary');
 const path = require('path');
 const fs = require('fs');
 
@@ -16,14 +17,33 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
 // DB CONNECTION
+const databaseUrl = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL;
+
+if (!databaseUrl) {
+    console.error('Missing DATABASE_URL (or NEON_DATABASE_URL). Set it in your environment variables.');
+    process.exit(1);
+}
+
 const pool = new Pool({
-    connectionString:
-        process.env.DATABASE_URL ||
-        'postgresql://neondb_owner:npg_iAao5cOLrbY9@ep-muddy-recipe-a1d53akz-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+    connectionString: databaseUrl,
     ssl: { rejectUnauthorized: false },
 });
 
 const PORT = process.env.PORT || 3000;
+const isCloudinaryConfigured = Boolean(
+    process.env.CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET
+);
+
+if (isCloudinaryConfigured) {
+    cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+        secure: true,
+    });
+}
 
 // FILE STORAGE
 const uploadsDir = process.env.UPLOADS_DIR
@@ -87,6 +107,10 @@ function findExistingDocumentFile(filePath) {
     return candidates.find((candidate) => fs.existsSync(candidate));
 }
 
+function isRemoteFilePath(filePath) {
+    return /^https?:\/\//i.test(String(filePath || ''));
+}
+
 function tryDeleteDocumentFile(filePath) {
     const resolvedFile = findExistingDocumentFile(filePath);
 
@@ -139,6 +163,83 @@ function cleanupApplicationUploadDirs(applicationId) {
 
 function sanitizeFileName(fileName) {
     return fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+}
+
+function getCloudinaryPublicId(fileName) {
+    const parsed = path.parse(fileName || 'document');
+    return `${Date.now()}-${sanitizeFileName(parsed.name || 'document')}`;
+}
+
+async function uploadDocumentToCloudinary(file, applicationId) {
+    const publicId = getCloudinaryPublicId(file.originalname);
+    const folder = `kandy-smartcad/application-${applicationId}`;
+
+    return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+            {
+                folder,
+                public_id: publicId,
+                resource_type: 'auto',
+                unique_filename: false,
+                overwrite: false,
+                use_filename: false,
+                secure: true,
+            },
+            (error, result) => {
+                if (error || !result) {
+                    reject(error || new Error('Cloudinary upload failed'));
+                    return;
+                }
+
+                resolve({
+                    url: result.secure_url,
+                    key: result.public_id,
+                });
+            }
+        );
+
+        uploadStream.end(file.buffer);
+    });
+}
+
+async function deleteCloudinaryAsset(storageKey) {
+    const resourceTypes = ['image', 'raw', 'video'];
+
+    for (const resourceType of resourceTypes) {
+        try {
+            const result = await cloudinary.uploader.destroy(storageKey, { resource_type: resourceType });
+            if (result.result === 'ok') {
+                return { deleted: true, provider: 'cloudinary', resource_type: resourceType };
+            }
+        } catch (error) {
+            // Try the next resource type.
+        }
+    }
+
+    return { deleted: false, provider: 'cloudinary', reason: 'missing' };
+}
+
+async function deleteDocumentStorage(document) {
+    if (document.storage_provider === 'cloudinary' && document.storage_key && isCloudinaryConfigured) {
+        return deleteCloudinaryAsset(document.storage_key);
+    }
+
+    return tryDeleteDocumentFile(document.file_path);
+}
+
+async function sendRemoteFileAsDownload(res, fileUrl, fileName) {
+    const remoteResponse = await fetch(fileUrl);
+
+    if (!remoteResponse.ok) {
+        return res.status(404).json({ error: 'Remote file not found' });
+    }
+
+    const contentType = remoteResponse.headers.get('content-type') || 'application/octet-stream';
+    const fileBuffer = Buffer.from(await remoteResponse.arrayBuffer());
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFileName(fileName || 'document')}"`);
+    return res.send(fileBuffer);
 }
 
 function ensureApplicationDir(applicationId) {
@@ -212,10 +313,16 @@ async function ensureSchema() {
             document_type VARCHAR(150),
             file_name VARCHAR(255),
             file_path VARCHAR(255),
+            storage_provider VARCHAR(50) DEFAULT 'local',
+            storage_key VARCHAR(500),
             review_status VARCHAR(50) DEFAULT 'pending',
             uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `);
+
+    await pool.query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS storage_provider VARCHAR(50) DEFAULT 'local'`);
+    await pool.query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS storage_key VARCHAR(500)`);
+    await pool.query(`UPDATE documents SET storage_provider = 'local' WHERE storage_provider IS NULL`);
 
     await pool.query(`
         CREATE TABLE IF NOT EXISTS application_status_history (
@@ -290,22 +397,24 @@ async function ensureDefaultAdmin() {
     );
 }
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const { application_id: applicationId } = req.body;
+const upload = isCloudinaryConfigured
+    ? multer({ storage: multer.memoryStorage() })
+    : multer({
+        storage: multer.diskStorage({
+            destination: (req, file, cb) => {
+                const { application_id: applicationId } = req.body;
 
-        if (!applicationId) {
-            cb(new Error('Missing application_id'));
-            return;
-        }
+                if (!applicationId) {
+                    cb(new Error('Missing application_id'));
+                    return;
+                }
 
-        cb(null, ensureApplicationDir(applicationId));
-    },
-    filename: (req, file, cb) =>
-        cb(null, Date.now() + '-' + sanitizeFileName(file.originalname)),
-});
-
-const upload = multer({ storage });
+                cb(null, ensureApplicationDir(applicationId));
+            },
+            filename: (req, file, cb) =>
+                cb(null, Date.now() + '-' + sanitizeFileName(file.originalname)),
+        })
+    });
 
 // ROOT
 app.get('/', (req, res) => {
@@ -587,20 +696,34 @@ app.post('/upload', upload.single('document'), async (req, res) => {
             return res.status(404).json({ error: 'Application not found for this user' });
         }
 
-        const relativePath = path.relative(uploadsDir, file.path).split(path.sep).join('/');
+        let filePath;
+        let storageProvider = 'local';
+        let storageKey = null;
 
-        await pool.query(
-            'INSERT INTO documents (user_id, application_id, document_type, file_name, file_path) VALUES ($1,$2,$3,$4,$5)',
-            [user_id, application_id, document_type || 'Uncategorized', file.originalname, relativePath]
+        if (isCloudinaryConfigured) {
+            const uploadedFile = await uploadDocumentToCloudinary(file, application_id);
+            filePath = uploadedFile.url;
+            storageProvider = 'cloudinary';
+            storageKey = uploadedFile.key;
+        } else {
+            filePath = path.relative(uploadsDir, file.path).split(path.sep).join('/');
+        }
+
+        const insertResult = await pool.query(
+            'INSERT INTO documents (user_id, application_id, document_type, file_name, file_path, storage_provider, storage_key) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+            [user_id, application_id, document_type || 'Uncategorized', file.originalname, filePath, storageProvider, storageKey]
         );
+
+        const documentId = insertResult.rows[0].id;
 
         res.json({
             message: 'Uploaded',
             document: {
+                id: documentId,
                 document_type: document_type || 'Uncategorized',
                 file_name: file.originalname,
-                file_path: relativePath,
-                download_url: `${getPublicBaseUrl(req)}/uploads/${relativePath}`
+                file_path: filePath,
+                download_url: `${getPublicBaseUrl(req)}/admin/documents/${documentId}/download`
             }
         });
 
@@ -665,6 +788,8 @@ app.get('/admin/applications/:reference/documents', async (req, res) => {
                 document_type,
                 file_name,
                 file_path,
+                storage_provider,
+                storage_key,
                 review_status,
                 uploaded_at
             FROM documents
@@ -751,7 +876,7 @@ app.delete('/admin/documents/:id', async (req, res) => {
 
     try {
         const result = await pool.query(
-            'SELECT id, application_id, file_name, file_path FROM documents WHERE id = $1',
+            'SELECT id, application_id, file_name, file_path, storage_provider, storage_key FROM documents WHERE id = $1',
             [docId]
         );
 
@@ -760,7 +885,7 @@ app.delete('/admin/documents/:id', async (req, res) => {
         }
 
         const document = result.rows[0];
-        const fileDeleteResult = tryDeleteDocumentFile(document.file_path);
+    const fileDeleteResult = await deleteDocumentStorage(document);
 
         await pool.query('DELETE FROM documents WHERE id = $1', [docId]);
         const cleaned_folders = cleanupApplicationUploadDirs(document.application_id);
@@ -794,21 +919,21 @@ app.delete('/admin/applications/:reference/documents', async (req, res) => {
 
         const applicationId = appResult.rows[0].id;
         const docsResult = await pool.query(
-            'SELECT id, file_path FROM documents WHERE application_id = $1',
+            'SELECT id, file_path, storage_provider, storage_key FROM documents WHERE application_id = $1',
             [applicationId]
         );
 
         let deletedFiles = 0;
         let missingFiles = 0;
 
-        docsResult.rows.forEach((document) => {
-            const fileDeleteResult = tryDeleteDocumentFile(document.file_path);
+        for (const document of docsResult.rows) {
+            const fileDeleteResult = await deleteDocumentStorage(document);
             if (fileDeleteResult.deleted) {
                 deletedFiles += 1;
             } else if (fileDeleteResult.reason === 'missing') {
                 missingFiles += 1;
             }
-        });
+        }
 
         const deleteResult = await pool.query(
             'DELETE FROM documents WHERE application_id = $1 RETURNING id',
@@ -859,7 +984,7 @@ app.get('/admin/documents/:id/download', async (req, res) => {
 
     try {
         const result = await pool.query(
-            'SELECT id, file_name, file_path FROM documents WHERE id = $1',
+            'SELECT id, file_name, file_path, storage_provider FROM documents WHERE id = $1',
             [docId]
         );
 
@@ -868,6 +993,11 @@ app.get('/admin/documents/:id/download', async (req, res) => {
         }
 
         const document = result.rows[0];
+
+        if (document.storage_provider === 'cloudinary' || isRemoteFilePath(document.file_path)) {
+            return sendRemoteFileAsDownload(res, document.file_path, document.file_name);
+        }
+
         const resolvedFile = findExistingDocumentFile(document.file_path);
 
         if (!resolvedFile) {
@@ -944,6 +1074,7 @@ async function startServer() {
         await pool.query('SELECT NOW()');
         console.log('DB connected');
         console.log('Uploads directory:', uploadsDir);
+        console.log('Cloudinary enabled:', isCloudinaryConfigured);
 
         app.listen(PORT, () => {
             console.log('Server running on ' + PORT);
