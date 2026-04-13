@@ -35,6 +35,7 @@ const isCloudinaryConfigured = Boolean(
     process.env.CLOUDINARY_API_KEY &&
     process.env.CLOUDINARY_API_SECRET
 );
+const useDatabaseStorage = !isCloudinaryConfigured;
 
 if (isCloudinaryConfigured) {
     cloudinary.config({
@@ -224,6 +225,10 @@ async function deleteDocumentStorage(document) {
         return deleteCloudinaryAsset(document.storage_key);
     }
 
+    if (document.storage_provider === 'database') {
+        return { deleted: true, provider: 'database' };
+    }
+
     return tryDeleteDocumentFile(document.file_path);
 }
 
@@ -322,6 +327,9 @@ async function ensureSchema() {
 
     await pool.query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS storage_provider VARCHAR(50) DEFAULT 'local'`);
     await pool.query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS storage_key VARCHAR(500)`);
+    await pool.query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_data BYTEA`);
+    await pool.query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS mime_type VARCHAR(150)`);
+    await pool.query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_size BIGINT`);
     await pool.query(`UPDATE documents SET storage_provider = 'local' WHERE storage_provider IS NULL`);
 
     await pool.query(`
@@ -399,22 +407,24 @@ async function ensureDefaultAdmin() {
 
 const upload = isCloudinaryConfigured
     ? multer({ storage: multer.memoryStorage() })
-    : multer({
-        storage: multer.diskStorage({
-            destination: (req, file, cb) => {
-                const { application_id: applicationId } = req.body;
+    : useDatabaseStorage
+        ? multer({ storage: multer.memoryStorage() })
+        : multer({
+            storage: multer.diskStorage({
+                destination: (req, file, cb) => {
+                    const { application_id: applicationId } = req.body;
 
-                if (!applicationId) {
-                    cb(new Error('Missing application_id'));
-                    return;
-                }
+                    if (!applicationId) {
+                        cb(new Error('Missing application_id'));
+                        return;
+                    }
 
-                cb(null, ensureApplicationDir(applicationId));
-            },
-            filename: (req, file, cb) =>
-                cb(null, Date.now() + '-' + sanitizeFileName(file.originalname)),
-        })
-    });
+                    cb(null, ensureApplicationDir(applicationId));
+                },
+                filename: (req, file, cb) =>
+                    cb(null, Date.now() + '-' + sanitizeFileName(file.originalname)),
+            })
+        });
 
 // ROOT
 app.get('/', (req, res) => {
@@ -699,19 +709,50 @@ app.post('/upload', upload.single('document'), async (req, res) => {
         let filePath;
         let storageProvider = 'local';
         let storageKey = null;
+        let fileData = null;
+        let mimeType = null;
+        let fileSize = null;
 
         if (isCloudinaryConfigured) {
             const uploadedFile = await uploadDocumentToCloudinary(file, application_id);
             filePath = uploadedFile.url;
             storageProvider = 'cloudinary';
             storageKey = uploadedFile.key;
+        } else if (useDatabaseStorage) {
+            filePath = null;
+            storageProvider = 'database';
+            fileData = file.buffer;
+            mimeType = file.mimetype || 'application/octet-stream';
+            fileSize = file.size || file.buffer.length;
         } else {
             filePath = path.relative(uploadsDir, file.path).split(path.sep).join('/');
         }
 
         const insertResult = await pool.query(
-            'INSERT INTO documents (user_id, application_id, document_type, file_name, file_path, storage_provider, storage_key) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
-            [user_id, application_id, document_type || 'Uncategorized', file.originalname, filePath, storageProvider, storageKey]
+            `INSERT INTO documents (
+                user_id,
+                application_id,
+                document_type,
+                file_name,
+                file_path,
+                storage_provider,
+                storage_key,
+                file_data,
+                mime_type,
+                file_size
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+            [
+                user_id,
+                application_id,
+                document_type || 'Uncategorized',
+                file.originalname,
+                filePath,
+                storageProvider,
+                storageKey,
+                fileData,
+                mimeType,
+                fileSize,
+            ]
         );
 
         const documentId = insertResult.rows[0].id;
@@ -984,7 +1025,7 @@ app.get('/admin/documents/:id/download', async (req, res) => {
 
     try {
         const result = await pool.query(
-            'SELECT id, file_name, file_path, storage_provider FROM documents WHERE id = $1',
+            'SELECT id, file_name, file_path, storage_provider, mime_type, file_data FROM documents WHERE id = $1',
             [docId]
         );
 
@@ -993,6 +1034,17 @@ app.get('/admin/documents/:id/download', async (req, res) => {
         }
 
         const document = result.rows[0];
+
+        if (document.storage_provider === 'database') {
+            if (!document.file_data) {
+                return res.status(404).json({ error: 'File not found in database storage', document_id: document.id });
+            }
+
+            const downloadName = sanitizeFileName(document.file_name || 'document');
+            res.setHeader('Content-Type', document.mime_type || 'application/octet-stream');
+            res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+            return res.send(document.file_data);
+        }
 
         if (document.storage_provider === 'cloudinary' || isRemoteFilePath(document.file_path)) {
             return sendRemoteFileAsDownload(res, document.file_path, document.file_name);
