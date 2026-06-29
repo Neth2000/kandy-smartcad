@@ -307,22 +307,22 @@ function checkApproval(){
   // RULE 1: max floors based on road width
   if(road < 4.5 && floors > 1){
     permissible = false;
-    messages.push("Road < 4.5m â†’ max allowed 1 floor.");
+    messages.push("Road < 4.5m  max allowed 1 floor.");
   }
 
   if(road >= 4.5 && road < 7 && floors > 2){
     permissible = false;
-    messages.push("Road 4.5â€“7m â†’ max allowed 2 floors.");
+    messages.push("Road 4.5-7m  max allowed 2 floors.");
   }
 
   if(road >= 7 && road < 12 && floors > 3){
     permissible = false;
-    messages.push("Road 7â€“12m â†’ max allowed 3 floors.");
+    messages.push("Road width 7-12m max allowed 3 floors.");
   }
 
   if(road >= 12 && floors > 5){
     permissible = false;
-    messages.push("Road â‰¥ 12m â†’ max allowed 5 floors.");
+    messages.push("Road Width 12m  max allowed 5 floors.");
   }
 
   // RULE 2: Minimum spaces
